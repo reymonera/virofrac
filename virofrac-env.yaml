@@ -1,0 +1,15 @@
+name: virofrac
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - python=3.10
+  - pandas
+  - ete3
+  - seaborn
+  - matplotlib
+  - scipy
+  - numpy
+  - biopython
+  - pip
