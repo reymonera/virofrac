@@ -6,6 +6,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from scipy.cluster.hierarchy import linkage
 from scipy.spatial.distance import squareform
+from tqdm import tqdm
 
 # This function manages the partial OTU tables that will
 # be used as an input when compairing each pair.
@@ -63,7 +64,7 @@ def get_input_otu_lines(partial_otu_tables):
 # for the matrix output. For this, the function first
 # calculates the size of the matrix and then builds
 # the matrix based on the selected distance.
-def get_frac_matrix_output(otu_df, tree, unifrac_type):
+def get_frac_matrix_output_1(otu_df, tree, unifrac_type):
     sample_names = otu_df.columns[1:].tolist()
     n = len(sample_names)
 
@@ -90,6 +91,38 @@ def get_frac_matrix_output(otu_df, tree, unifrac_type):
     
     return pd.DataFrame(matrix, index=sample_names, columns=sample_names)
 
+def get_frac_matrix_output(otu_df, tree, unifrac_type):
+    sample_names = otu_df.columns[1:].tolist()
+    n = len(sample_names)
+    total_pairs = n * (n - 1) // 2
+    
+    matrix = np.zeros((n, n))
+    
+    for (i, j) in tqdm(combinations(range(n), 2), 
+                       total=total_pairs,
+                       desc="Brewing your UniFrac results",
+                       unit="pairs"):
+        
+        col_i = sample_names[i]
+        col_j = sample_names[j]
+        sub_df = otu_df[[otu_df.columns[0], col_i, col_j]]
+        
+        lines = ['\t'.join(sub_df.columns)]
+        data_array = sub_df.values.astype(str)
+        lines.extend(['\t'.join(row) for row in data_array])
+        
+        if unifrac_type == 'normalized weighted unifrac':
+            distance = frac.getNormalizedWeightedUniFrac(tree, lines)
+        elif unifrac_type == 'unnormalized weighted unifrac':
+            distance = frac.getUnnormalizedWeightedUniFrac(tree, lines)
+        else:
+            distance = frac.getUnweightedUnifrac(tree, lines)
+        
+        matrix[i, j] = distance
+        matrix[j, i] = distance
+    
+    return pd.DataFrame(matrix, index=sample_names, columns=sample_names)
+
 # def get_frac_matrix_output(otu_df, tree, unifrac_type):
 #     from itertools import combinations
     
@@ -100,6 +133,10 @@ def get_frac_matrix_output(otu_df, tree, unifrac_type):
 #     print(f"Total de pares a procesar: {n*(n-1)//2}")
     
 #     matriz = np.zeros((n, n))
+
+#     # NUEVO: Pre-calcular set de OTUs en el árbol (una vez)
+#     otus_in_tree = set(leaf.name for leaf in tree.iter_leaves())
+#     print(f"OTUs en árbol: {len(otus_in_tree)}, OTUs en tabla: {len(otu_df)}")
     
 #     # Procesar cada par directamente sin almacenar todas las tablas
 #     for idx, (i, j) in enumerate(combinations(range(n), 2)):
@@ -110,6 +147,27 @@ def get_frac_matrix_output(otu_df, tree, unifrac_type):
 #         col_i = sample_names[i]
 #         col_j = sample_names[j]
 #         sub_df = otu_df[[otu_df.columns[0], col_i, col_j]]
+
+#         # NUEVO: Filtrar solo OTUs con counts > 0 en al menos una muestra
+#         sub_df_filtered = sub_df[
+#             (sub_df[col_i].astype(float) > 0) | 
+#             (sub_df[col_j].astype(float) > 0)
+#         ]
+
+#         # NUEVO: Solo OTUs que están en AMBOS (tabla Y árbol)
+#         otus_in_pair = set(sub_df_filtered[sub_df_filtered.columns[0]].values)
+#         otus_to_prune = otus_in_pair & otus_in_tree  # Intersección
+        
+#         if not otus_to_prune:
+#             # No hay OTUs en común, distancia = 1.0 (máxima)
+#             matriz[i, j] = 1.0
+#             matriz[j, i] = 1.0
+#             continue
+        
+#         # NUEVO: Podar árbol para este par específico
+#         #otus_in_pair = set(sub_df_filtered[sub_df_filtered.columns[0]].values)
+#         tree_pair = tree.copy()
+#         tree_pair.prune(otus_to_prune, preserve_branch_length=True)
         
 #         # Convertir a líneas directamente
 #         lines = ['\t'.join(sub_df.columns)]
@@ -118,11 +176,11 @@ def get_frac_matrix_output(otu_df, tree, unifrac_type):
         
 #         # Calcular distancia
 #         if unifrac_type == 'normalized weighted unifrac':
-#             distance = frac.getNormalizedWeightedUniFrac(tree, lines)
+#             distance = frac.getNormalizedWeightedUniFrac(tree_pair, lines)
 #         elif unifrac_type == 'unnormalized weighted unifrac':
-#             distance = frac.getUnnormalizedWeightedUniFrac(tree, lines)
+#             distance = frac.getUnnormalizedWeightedUniFrac(tree_pair, lines)
 #         else:  # unweighted
-#             distance = frac.getUnweightedUnifrac(tree, lines)
+#             distance = frac.getUnweightedUnifrac(tree_pair, lines)
         
 #         matriz[i, j] = distance
 #         matriz[j, i] = distance

@@ -7,6 +7,7 @@ import pandas as pd
 import output_control as oc
 #Provisional
 import cProfile
+import pstats
 import re
 
 def parse_arguments():
@@ -85,8 +86,7 @@ def main():
     otu_table =  get_input_otu_table()
     otu_tree = get_input_otu_tree()
 
-    matrix = cProfile.run(oc.get_frac_matrix_output(otu_table, otu_tree, args.unifrac_type))
-
+    matrix = oc.get_frac_matrix_output(otu_table, otu_tree, args.unifrac_type)
     oc.get_heatmap_output(matrix, otu_table, args.unifrac_type)
 
     return 0
