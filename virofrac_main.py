@@ -44,6 +44,24 @@ def parse_arguments():
         type=str
     )
 
+    parser.add_argument(
+        '--metadata', 
+        type=str, 
+        required=False
+        )
+    
+    parser.add_argument(
+        '--legend-column',
+        type=str,
+        required=False
+        )
+    
+    parser.add_argument(
+        '--color-column',
+        type=str,
+        required=False
+        )
+
     args = parser.parse_args()
 
     return args

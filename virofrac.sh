@@ -31,6 +31,11 @@ if [[ $# -eq 0 ]]; then
     echo "  -pt, --phy-tree [file ]                 Selects the phylogenetic tree option"
     echo "  -nt, --network                          Selects tree from network option"
     echo ""
+    echo "Metdata options:"
+    echo "  -m, --metadata [file]                   A metadata file used for the final heatmap plot. If not used, it will output a default plot."
+    echo "  -l, --legend-column [column_name]       This will apply color strips and a legend to the final heatmap plot."
+    echo "  -c, --color-column [column_name]        If used, the script will apply the colors in the selected column."
+    echo ""
     exit 0
 fi
 
@@ -105,6 +110,18 @@ while [[ $# -gt 0 ]]; do
             UNIFRAC_TYPE="normalized weighted unifrac"
             shift
             ;;
+        -m|--metadata)
+            METADATA_FILE="$2"
+            shift
+            ;;
+        -l|--legend-column)
+            LEGEND_COLUMN_NAME="$2"
+            shift
+            ;;
+        -c|--color-column)
+            COLOR_COLUMN_NAME="$2"
+            shift
+            ;;
         -h|--help)
             echo ' _  _  __  ___   __  ___  ___    __   __ '
             echo '( )( )(  )(  ,) /  \(  _)(  ,)  (  ) / _)'
@@ -132,6 +149,11 @@ while [[ $# -gt 0 ]]; do
             echo "  -tt, --tax-tree                         Selects the taxonomic tree option"
             echo "  -pt, --phy-tree [file ]                 Selects the phylogenetic tree option"
             echo "  -nt, --network                          Selects tree from network option"
+            echo ""
+            echo "Metdata options:"
+            echo "  -m, --metadata [file]                   A metadata file used for the final heatmap plot. If not used, it will output a default plot."
+            echo "  -l, --legend-column [column_name]       This will apply color strips and a legend to the final heatmap plot."
+            echo "  -c, --color-column [column_name]        If used, the script will apply the colors in the selected column."
             echo ""
             exit 0
             ;;
@@ -231,6 +253,23 @@ if [[ $UNIFRAC_OPTIONS -eq 0 ]]; then
 fi
 
 # --------------------------------------
+#           HEATMAP CONTROLS
+# --------------------------------------
+# If the metadata option is used, then the legend column needs to be specified.
+if [[ -n "$METADATA_FILE" ]] && [[ -z "$LEGEND_COLUMN_NAME" ]]; then
+    echo "Error: --metadata requires --legend-column"
+    echo "Usage: --metadata [file] --legend-column [column_name]"
+    exit 1
+fi
+
+# Color column option requires the metadata option.
+if [[ -n "$COLOR_COLUMN_NAME" ]] && [[ -z "$METADATA_FILE" ]]; then
+    echo "Error: --color-column requires --metadata"
+    echo "Usage: --metadata [file] --legend-column [column] --color-column [column]"
+    exit 1
+fi
+
+# --------------------------------------
 #            MISSING FILES
 # --------------------------------------
 # Handling a missing OTU_TABLE_FILE
@@ -255,6 +294,12 @@ if [[ -n "$PHY_TREE_FILE" ]]; then
         echo "Error: Phylogenetic tree file not found: $PHY_TREE_FILE"
         exit 1
     fi
+fi
+
+# Metadata file should exist.
+if [[ -n "$METADATA_FILE" ]] && [[ ! -f "$METADATA_FILE" ]]; then
+    echo "Error: Metadata file not found: $METADATA_FILE"
+    exit 1
 fi
 
 # --------------------------------------
@@ -284,6 +329,11 @@ if [[ -n "$PHY_TREE_FILE" ]]; then
     fi
 fi
 
+# Handling an empty METADATA_FILE
+if [[ -n "$METADATA_FILE" ]] && [[ ! -s "$METADATA_FILE" ]]; then
+    echo "Error: Metadata file is empty"
+    exit 1
+fi
 # --------------------------------------
 #            FILE EXTENSIONS
 # --------------------------------------
@@ -372,6 +422,19 @@ fi
 # Deals with the UniFrac type
 if [[ -n "$UNIFRAC_TYPE" ]] && [[ -n "$OTU_TABLE_FILE" ]] && [[ -n "$TAX_TABLE_FILE" ]] && [[ -n "$TREE_TYPE" ]]; then
     PYTHON_CMD="$PYTHON_CMD --unifrac-type \"$UNIFRAC_TYPE\""
+fi
+
+# Deals with metadata and heatmap options
+if [[ -n "$METADATA_FILE" ]]; then
+    PYTHON_CMD="$PYTHON_CMD --metadata \"$METADATA_FILE\""
+    
+    if [[ -n "$LEGEND_COLUMN_NAME" ]]; then
+        PYTHON_CMD="$PYTHON_CMD --legend-column \"$LEGEND_COLUMN_NAME\""
+    fi
+    
+    if [[ -n "$COLOR_COLUMN_NAME" ]]; then
+        PYTHON_CMD="$PYTHON_CMD --color-column \"$COLOR_COLUMN_NAME\""
+    fi
 fi
 
 eval $PYTHON_CMD
