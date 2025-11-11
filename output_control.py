@@ -8,6 +8,7 @@ from scipy.cluster.hierarchy import linkage
 from scipy.spatial.distance import squareform
 from tqdm import tqdm
 from matplotlib.patches import Patch
+from matplotlib.colors import LinearSegmentedColormap
 
 # This function manages the partial OTU tables that will
 # be used as an input when compairing each pair.
@@ -75,6 +76,8 @@ def get_frac_matrix_output(otu_df, tree, unifrac_type):
     
     return pd.DataFrame(matrix, index=sample_names, columns=sample_names)
 
+# This function saves the matrix in a tab delimited file
+# that should be available after the run of this pipeline.
 def get_dataframe_from_matrix(matrix, otu_df):
     sample_names = otu_df.columns[1:].tolist()
     matrix_as_df = pd.DataFrame(matrix, index=sample_names, columns=sample_names)
@@ -83,8 +86,30 @@ def get_dataframe_from_matrix(matrix, otu_df):
 
     return matrix_as_df
 
-# AGREGAR STRIP DE COLOR STRIP DE COLOR
-def get_heatmap_output(matrix, otu_df, unifrac_type, metadata_file=None, legend_columns=None, color_columns=None):
+def get_color_gradient_for_heatmap(color_gradient):
+    if not color_gradient:
+        print("Using default colormap gradient: 'coolwarm'")
+        return 'coolwarm'
+    
+    if ',' in color_gradient:
+        colors = [c.strip() for c in color_gradient.split(',')]
+        return LinearSegmentedColormap.from_list('custom', colors)
+    
+    if isinstance(color_gradient, str):
+        if color_gradient.startswith('#'):
+            print('Color pair not specified, using white in the custom gradiet...')
+            return LinearSegmentedColormap.from_list('custom', ['#FFFFFF', color_gradient])
+        else:
+            print(f"Using predefined colormap: '{color_gradient}'")
+            return color_gradient
+    
+
+# This function controls the heatmap output. There are two 
+# options: When there is no metadata input and when there 
+# is metadata input. A legend and a color column needs to 
+# be specified for a correct labelling.
+def get_heatmap_output(matrix, otu_df, unifrac_type, color_gradient, metadata_file=None, legend_columns=None, color_columns=None):
+    gradient = get_color_gradient_for_heatmap(color_gradient)
     matrix_df = get_dataframe_from_matrix(matrix, otu_df)
     dist_condensed = squareform(matrix)
     
@@ -96,7 +121,7 @@ def get_heatmap_output(matrix, otu_df, unifrac_type, metadata_file=None, legend_
             matrix,
             row_linkage=row_linkage,
             col_linkage=col_linkage,
-            cmap='coolwarm',
+            cmap=gradient,
             vmin=0,
             vmax=1,
             annot=False,
@@ -122,9 +147,10 @@ def get_heatmap_output(matrix, otu_df, unifrac_type, metadata_file=None, legend_
             y=0.96
         )
         
-        #plt.tight_layout()
         plt.savefig('virofrac_heatmap.png', dpi=300, bbox_inches='tight')
+        print("✅ Heatmap ready! Showing the final plot...")
         plt.show()
+        print(f"✓ Heatmap saved in virofrac_heatmap.png")
         return g
     
     with open(metadata_file, 'r') as f:
@@ -196,7 +222,7 @@ def get_heatmap_output(matrix, otu_df, unifrac_type, metadata_file=None, legend_
         col_linkage=col_linkage,
         row_colors=colors_combined,
         col_colors=colors_combined,
-        cmap='coolwarm',
+        cmap=gradient,
         vmin=0,
         vmax=1,
         annot=False,
@@ -256,10 +282,12 @@ def get_heatmap_output(matrix, otu_df, unifrac_type, metadata_file=None, legend_
         y=0.96
     )
     
+    # Output files being handled here.
     plt.savefig('virofrac_heatmap.png', dpi=300, bbox_inches='tight')
+    plt.savefig('virofrac_heatmap.svg', format='svg', bbox_inches='tight')
+
     print("✅ Heatmap ready! Showing the final plot...")
     plt.show()
-    
     print(f"✓ Heatmap saved in virofrac_heatmap.png")
     
     return g

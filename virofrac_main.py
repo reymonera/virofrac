@@ -1,14 +1,10 @@
-#import sys
 import argparse
 from pathlib import Path
-#import frac
 import tree_treatment as treetr
 import pandas as pd
 import output_control as oc
 #Provisional
-import cProfile
-import pstats
-import re
+
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
@@ -60,6 +56,9 @@ def parse_arguments():
                     action='append',
                     type=str,
                     required=False)
+    
+    parser.add_argument('--color-gradient',
+                   type=str)
 
     args = parser.parse_args()
 
@@ -108,6 +107,7 @@ def main():
         matrix, 
         otu_table, 
         args.unifrac_type,
+        args.color_gradient,
         args.metadata,
         args.legend_column,
         args.color_column)

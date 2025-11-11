@@ -18,8 +18,8 @@ if [[ $# -eq 0 ]]; then
     echo ""
     echo "Input options:"
     echo "  -r, --reads [file]                      Selects reads file"
-    echo "  -o, --otu-table [file]                  Selects OTU table"
-    echo "  -t, --tax-table [file]                  Selects taxonomic table"
+    echo "  -o, --otu-table [file]                  Selects OTU table [.tsv|.csv|.tab|.tabular]"
+    echo "  -t, --tax-table [file]                  Selects taxonomic table [.tsv|.csv|.tab|.tabular]"
     echo ""
     echo "UniFrac distance options:"
     echo "  -uu, --unweighted-unifrac               Selects the unweighted unifrac option"
@@ -28,13 +28,15 @@ if [[ $# -eq 0 ]]; then
     echo ""
     echo "Input Tree options:"
     echo "  -tt, --tax-tree                         Selects the taxonomic tree option"
-    echo "  -pt, --phy-tree [file ]                 Selects the phylogenetic tree option"
+    echo "  -pt, --phy-tree [file]                  Selects the phylogenetic tree option [.newick]"
     echo "  -nt, --network                          Selects tree from network option"
     echo ""
-    echo "Metdata options:"
-    echo "  -m, --metadata [file]                   A metadata file used for the final heatmap plot. If not used, it will output a default plot."
-    echo "  -l, --legend-column [column_name]       This will apply color strips and a legend to the final heatmap plot."
-    echo "  -c, --color-column [column_name]        If used, the script will apply the colors in the selected column."
+    echo "Metdata/Plot options:"
+    echo "  -m, --metadata [file]                   A metadata file used for the final heatmap plot. If not used, it will output a default plot. [.tsv|.csv|.tab|.tabular]"
+    echo "  -l, --legend-column [column_name]       This will apply color strips and a legend to the final heatmap plot. Requires a specified color column."
+    echo "  -c, --color-column [column_name]        If used, the script will apply the colors in the selected column. Requires a specified legend column."
+    echo "                                          NOTE: Specify the legend columns and then the color columns. The script will use the corresponding order."
+    echo "  -g, --color-gradient [string]           Deafult: 'coolwarm'. When used, user can specify another gradient or a custom gradient using hexacode"
     echo ""
     exit 0
 fi
@@ -135,39 +137,43 @@ while [[ $# -gt 0 ]]; do
             COLOR_COLUMNS+=("$2")
             shift 2
             ;;
+        -g|--color-gradient)
+            COLOR_GRADIENT="$2"
+            shift 2
+            ;;
         -h|--help)
-            echo ' _  _  __  ___   __  ___  ___    __   __ '
-            echo '( )( )(  )(  ,) /  \(  _)(  ,)  (  ) / _)'
-            echo ' \\//  )(  )  \( () )) _) )  \  /__\( (_ '
-            echo ' (__) (__)(_)\_)\__/(_)  (_)\_)(_)(_)\__)'
-            echo ""
-            echo "Usage: $(basename "$0") [options]"
-            echo ""
-            echo "Made with elegance 🍷"
-            echo ""
-            echo "General options:"
-            echo "  -h, --help                              Shows this helpful text :)"
-            echo ""
-            echo "Input options:"
-            echo "  -r, --reads [file]                      Selects reads file"
-            echo "  -o, --otu-table [file]                  Selects OTU table"
-            echo "  -t, --tax-table [file]                  Selects taxonomic table"
-            echo ""
-            echo "UniFrac distance options:"
-            echo "  -uu, --unweighted-unifrac               Selects the unweighted unifrac option"
-            echo "  -uw, --unnormalized-weighted-unifrac    Selects the unnormalized weighted unifrac option"
-            echo "  -nw, --normalized-weighted-unifrac      Selects the normalized weighted unifrac option"
-            echo ""
-            echo "Input Tree options:"
-            echo "  -tt, --tax-tree                         Selects the taxonomic tree option"
-            echo "  -pt, --phy-tree [file ]                 Selects the phylogenetic tree option"
-            echo "  -nt, --network                          Selects tree from network option"
-            echo ""
-            echo "Metdata options:"
-            echo "  -m, --metadata [file]                   A metadata file used for the final heatmap plot. If not used, it will output a default plot."
-            echo "  -l, --legend-column [column_name]       This will apply color strips and a legend to the final heatmap plot."
-            echo "  -c, --color-column [column_name]        If used, the script will apply the colors in the selected column."
-            echo ""
+                echo ' _  _  __  ___   __  ___  ___    __   __ '
+                echo '( )( )(  )(  ,) /  \(  _)(  ,)  (  ) / _)'
+                echo ' \\//  )(  )  \( () )) _) )  \  /__\( (_ '
+                echo ' (__) (__)(_)\_)\__/(_)  (_)\_)(_)(_)\__)'
+                echo ""
+                echo "Usage: $(basename "$0") [options]"
+                echo ""
+                echo "Made with elegance 🍷"
+                echo ""
+                echo "General options:"
+                echo "  -h, --help                              Shows this helpful text :)"
+                echo ""
+                echo "Input options:"
+                echo "  -r, --reads [file]                      Selects reads file"
+                echo "  -o, --otu-table [file]                  Selects OTU table [.tsv|.csv|.tab|.tabular]"
+                echo "  -t, --tax-table [file]                  Selects taxonomic table [.tsv|.csv|.tab|.tabular]"
+                echo ""
+                echo "UniFrac distance options:"
+                echo "  -uu, --unweighted-unifrac               Selects the unweighted unifrac option"
+                echo "  -uw, --unnormalized-weighted-unifrac    Selects the unnormalized weighted unifrac option"
+                echo "  -nw, --normalized-weighted-unifrac      Selects the normalized weighted unifrac option"
+                echo ""
+                echo "Input Tree options:"
+                echo "  -tt, --tax-tree                         Selects the taxonomic tree option"
+                echo "  -pt, --phy-tree [file]                  Selects the phylogenetic tree option [.newick]"
+                echo "  -nt, --network                          Selects tree from network option"
+                echo ""
+                echo "Metdata options:"
+                echo "  -m, --metadata [file]                   A metadata file used for the final heatmap plot. If not used, it will output a default plot. [.tsv|.csv|.tab|.tabular]"
+                echo "  -l, --legend-column [column_name]       This will apply color strips and a legend to the final heatmap plot."
+                echo "  -c, --color-column [column_name]        If used, the script will apply the colors in the selected column."
+                echo ""
             exit 0
             ;;
         *)
@@ -366,7 +372,7 @@ if [[ -n "$READS_FILE" ]]; then
             ;;
         *)
             echo "Error: Reads file doesn't have expected extension"
-            echo "Expected: .fastq, .fq, .fasta, .fa, or .gz compressed versions"
+            echo "Expected: .fastq, .fq, .fasta, .fa, or .gz compressed versions" # Pretty sure it is just .fastq or .fq, but we haven't reached this stage yet.
             echo "Got: $READS_FILE"
             exit 1
             ;;
@@ -462,5 +468,9 @@ if [[ -n "$METADATA_FILE" ]]; then
         done
     fi
 fi
+
+if [[ -n "$COLOR_GRADIENT" ]]; then
+        PYTHON_CMD="$PYTHON_CMD --color-gradient \"$COLOR_GRADIENT\""
+    fi
 
 eval $PYTHON_CMD
