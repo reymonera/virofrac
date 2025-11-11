@@ -44,23 +44,22 @@ def parse_arguments():
         type=str
     )
 
+    # Manage metadata file and its options
     parser.add_argument(
         '--metadata', 
         type=str, 
         required=False
         )
-    
-    parser.add_argument(
-        '--legend-column',
-        type=str,
-        required=False
-        )
-    
-    parser.add_argument(
-        '--color-column',
-        type=str,
-        required=False
-        )
+
+    parser.add_argument('--legend-column',
+                   action='append',
+                   type=str,
+                   required=False)
+
+    parser.add_argument('--color-column',
+                    action='append',
+                    type=str,
+                    required=False)
 
     args = parser.parse_args()
 
@@ -105,7 +104,13 @@ def main():
     otu_tree = get_input_otu_tree()
 
     matrix = oc.get_frac_matrix_output(otu_table, otu_tree, args.unifrac_type)
-    oc.get_heatmap_output(matrix, otu_table, args.unifrac_type)
+    oc.get_heatmap_output(
+        matrix, 
+        otu_table, 
+        args.unifrac_type,
+        args.metadata,
+        args.legend_column,
+        args.color_column)
 
     return 0
 

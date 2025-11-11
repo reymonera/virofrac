@@ -47,7 +47,11 @@ TREE_NET_USED=false
 # UniFrac flags detection
 UNIFRAC_UU_USED=false
 UNIFRAC_UW_USED=false
-UNIFRAC_NW_USED=false
+UNIFRAC_NW_USED=
+
+# Arrays for metadata
+LEGEND_COLUMNS=()
+COLOR_COLUMNS=()
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -112,15 +116,24 @@ while [[ $# -gt 0 ]]; do
             ;;
         -m|--metadata)
             METADATA_FILE="$2"
-            shift
+            shift 2
             ;;
         -l|--legend-column)
-            LEGEND_COLUMN_NAME="$2"
-            shift
+            if [[ -z "${2:-}" ]]; then
+                echo "Error: -l/--legend-column requires a column name"
+                exit 1
+            fi
+            LEGEND_COLUMNS+=("$2")
+            shift 2
             ;;
+
         -c|--color-column)
-            COLOR_COLUMN_NAME="$2"
-            shift
+            if [[ -z "${2:-}" ]]; then
+                echo "Error: -c/--color-column requires a column name"
+                exit 1
+            fi
+            COLOR_COLUMNS+=("$2")
+            shift 2
             ;;
         -h|--help)
             echo ' _  _  __  ___   __  ___  ___    __   __ '
@@ -256,16 +269,25 @@ fi
 #           HEATMAP CONTROLS
 # --------------------------------------
 # If the metadata option is used, then the legend column needs to be specified.
-if [[ -n "$METADATA_FILE" ]] && [[ -z "$LEGEND_COLUMN_NAME" ]]; then
-    echo "Error: --metadata requires --legend-column"
+if [[ -n "$METADATA_FILE" ]] && [[ ${#LEGEND_COLUMNS[@]} -eq 0 ]]; then
+    echo "Error: --metadata requires at least one --legend-column"
     echo "Usage: --metadata [file] --legend-column [column_name]"
     exit 1
 fi
 
 # Color column option requires the metadata option.
-if [[ -n "$COLOR_COLUMN_NAME" ]] && [[ -z "$METADATA_FILE" ]]; then
+if [[ ${#COLOR_COLUMNS[@]} -gt 0 ]] && [[ -z "$METADATA_FILE" ]]; then
     echo "Error: --color-column requires --metadata"
     echo "Usage: --metadata [file] --legend-column [column] --color-column [column]"
+    exit 1
+fi
+
+# Same number of color columns and legend columns.
+if [[ ${#COLOR_COLUMNS[@]} -gt 0 ]] && [[ ${#COLOR_COLUMNS[@]} -ne ${#LEGEND_COLUMNS[@]} ]]; then
+    echo "Error: Number of --color-column must match number of --legend-column"
+    echo "You provided:"
+    echo "  ${#LEGEND_COLUMNS[@]} legend columns: ${LEGEND_COLUMNS[*]}"
+    echo "  ${#COLOR_COLUMNS[@]} color columns: ${COLOR_COLUMNS[*]}"
     exit 1
 fi
 
@@ -428,12 +450,16 @@ fi
 if [[ -n "$METADATA_FILE" ]]; then
     PYTHON_CMD="$PYTHON_CMD --metadata \"$METADATA_FILE\""
     
-    if [[ -n "$LEGEND_COLUMN_NAME" ]]; then
-        PYTHON_CMD="$PYTHON_CMD --legend-column \"$LEGEND_COLUMN_NAME\""
+    if [[ ${#LEGEND_COLUMNS[@]} -gt 0 ]]; then
+        for col in "${LEGEND_COLUMNS[@]}"; do
+            PYTHON_CMD="$PYTHON_CMD --legend-column \"$col\""
+        done
     fi
     
-    if [[ -n "$COLOR_COLUMN_NAME" ]]; then
-        PYTHON_CMD="$PYTHON_CMD --color-column \"$COLOR_COLUMN_NAME\""
+    if [[ ${#COLOR_COLUMNS[@]} -gt 0 ]]; then
+        for col in "${COLOR_COLUMNS[@]}"; do
+            PYTHON_CMD="$PYTHON_CMD --color-column \"$col\""
+        done
     fi
 fi
 

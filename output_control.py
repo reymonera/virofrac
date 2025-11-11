@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from scipy.cluster.hierarchy import linkage
 from scipy.spatial.distance import squareform
 from tqdm import tqdm
+from matplotlib.patches import Patch
 
 # This function manages the partial OTU tables that will
 # be used as an input when compairing each pair.
@@ -38,59 +39,10 @@ def get_input_otu_lines(partial_otu_tables):
 
     return otu_table_lines_list
 
-# def get_input_otu_lines(partial_otu_tables):
-#     """Convierte DataFrames a líneas usando NumPy (muy rápido)"""
-#     otu_table_lines_list = []
-    
-#     print(f"Convirtiendo {len(partial_otu_tables)} tablas parciales...")
-#     for i, partial_table in enumerate(partial_otu_tables):
-#         if i % 2000 == 0:
-#             print(f"  Tabla {i}/{len(partial_otu_tables)}...")
-        
-#         lines = []
-        
-#         # Header
-#         lines.append('\t'.join(partial_table.columns))
-        
-#         # Datos con NumPy (mucho más rápido que iterrows)
-#         data_array = partial_table.values.astype(str)
-#         lines.extend(['\t'.join(row) for row in data_array])
-        
-#         otu_table_lines_list.append(lines)
-    
-#     return otu_table_lines_list
-
 # This function is managing the comparisons necessary
 # for the matrix output. For this, the function first
 # calculates the size of the matrix and then builds
 # the matrix based on the selected distance.
-def get_frac_matrix_output_1(otu_df, tree, unifrac_type):
-    sample_names = otu_df.columns[1:].tolist()
-    n = len(sample_names)
-
-    matrix = np.zeros((n, n))
-
-    for (i,j) in combinations(range(n), 2):
-        col_i = sample_names[i]
-        col_j = sample_names[j]
-        sub_df = otu_df[[otu_df.columns[0], col_i, col_j]]
-
-        lines = ['\t'.join(sub_df.columns)]
-        data_array = sub_df.values.astype(str)
-        lines.extend(['\t'.join(row) for row in data_array])
-
-        if unifrac_type == 'normalized weighted unifrac':
-            distance = frac.getNormalizedWeightedUniFrac(tree, lines)
-        elif unifrac_type == 'unnormalized weighted unifrac':
-            distance = frac.getUnnormalizedWeightedUniFrac(tree, lines)
-        else:
-            distance = frac.getUnweightedUnifrac(tree, lines)
-
-        matrix[i, j] = distance
-        matrix[j, i] = distance
-    
-    return pd.DataFrame(matrix, index=sample_names, columns=sample_names)
-
 def get_frac_matrix_output(otu_df, tree, unifrac_type):
     sample_names = otu_df.columns[1:].tolist()
     n = len(sample_names)
@@ -123,70 +75,6 @@ def get_frac_matrix_output(otu_df, tree, unifrac_type):
     
     return pd.DataFrame(matrix, index=sample_names, columns=sample_names)
 
-# def get_frac_matrix_output(otu_df, tree, unifrac_type):
-#     from itertools import combinations
-    
-#     print(f"Calculando matriz de distancias...")
-#     sample_names = otu_df.columns[1:].tolist()
-#     n = len(sample_names)
-    
-#     print(f"Total de pares a procesar: {n*(n-1)//2}")
-    
-#     matriz = np.zeros((n, n))
-
-#     # NUEVO: Pre-calcular set de OTUs en el árbol (una vez)
-#     otus_in_tree = set(leaf.name for leaf in tree.iter_leaves())
-#     print(f"OTUs en árbol: {len(otus_in_tree)}, OTUs en tabla: {len(otu_df)}")
-    
-#     # Procesar cada par directamente sin almacenar todas las tablas
-#     for idx, (i, j) in enumerate(combinations(range(n), 2)):
-#         if idx % 500 == 0:
-#             print(f"  Par {idx}/{n*(n-1)//2}...")
-        
-#         # Crear sub-tabla solo para este par
-#         col_i = sample_names[i]
-#         col_j = sample_names[j]
-#         sub_df = otu_df[[otu_df.columns[0], col_i, col_j]]
-
-#         # NUEVO: Filtrar solo OTUs con counts > 0 en al menos una muestra
-#         sub_df_filtered = sub_df[
-#             (sub_df[col_i].astype(float) > 0) | 
-#             (sub_df[col_j].astype(float) > 0)
-#         ]
-
-#         # NUEVO: Solo OTUs que están en AMBOS (tabla Y árbol)
-#         otus_in_pair = set(sub_df_filtered[sub_df_filtered.columns[0]].values)
-#         otus_to_prune = otus_in_pair & otus_in_tree  # Intersección
-        
-#         if not otus_to_prune:
-#             # No hay OTUs en común, distancia = 1.0 (máxima)
-#             matriz[i, j] = 1.0
-#             matriz[j, i] = 1.0
-#             continue
-        
-#         # NUEVO: Podar árbol para este par específico
-#         #otus_in_pair = set(sub_df_filtered[sub_df_filtered.columns[0]].values)
-#         tree_pair = tree.copy()
-#         tree_pair.prune(otus_to_prune, preserve_branch_length=True)
-        
-#         # Convertir a líneas directamente
-#         lines = ['\t'.join(sub_df.columns)]
-#         data_array = sub_df.values.astype(str)
-#         lines.extend(['\t'.join(row) for row in data_array])
-        
-#         # Calcular distancia
-#         if unifrac_type == 'normalized weighted unifrac':
-#             distance = frac.getNormalizedWeightedUniFrac(tree_pair, lines)
-#         elif unifrac_type == 'unnormalized weighted unifrac':
-#             distance = frac.getUnnormalizedWeightedUniFrac(tree_pair, lines)
-#         else:  # unweighted
-#             distance = frac.getUnweightedUnifrac(tree_pair, lines)
-        
-#         matriz[i, j] = distance
-#         matriz[j, i] = distance
-    
-#     return pd.DataFrame(matriz, index=sample_names, columns=sample_names)
-
 def get_dataframe_from_matrix(matrix, otu_df):
     sample_names = otu_df.columns[1:].tolist()
     matrix_as_df = pd.DataFrame(matrix, index=sample_names, columns=sample_names)
@@ -196,40 +84,184 @@ def get_dataframe_from_matrix(matrix, otu_df):
     return matrix_as_df
 
 # AGREGAR STRIP DE COLOR STRIP DE COLOR
-def get_heatmap_output(matrix, otu_df, unifrac_type):
+def get_heatmap_output(matrix, otu_df, unifrac_type, metadata_file=None, legend_columns=None, color_columns=None):
     matrix_df = get_dataframe_from_matrix(matrix, otu_df)
     dist_condensed = squareform(matrix)
     
     row_linkage = linkage(dist_condensed, method='average')
-    col_linkage = row_linkage 
+    col_linkage = row_linkage
+
+    if not metadata_file or not legend_columns:
+        g = sns.clustermap(
+            matrix,
+            row_linkage=row_linkage,
+            col_linkage=col_linkage,
+            cmap='coolwarm',
+            vmin=0,
+            vmax=1,
+            annot=False,
+            fmt='.3f',
+            figsize=(15, 13),
+            cbar_kws={
+                'label': 'UniFrac Distance',
+                'orientation': 'horizontal'
+            },
+            linewidths=0.5,
+            linecolor='white',
+            xticklabels=matrix_df.columns,
+            yticklabels=matrix_df.index,
+            dendrogram_ratio=(0.08, 0.08)
+        )
+
+        g.ax_heatmap.set_xlabel('Samples', fontsize=12)
+        g.ax_heatmap.set_ylabel('Samples', fontsize=12)
+        g.figure.suptitle(
+            f'{(unifrac_type).title()} Distance Matrix with Hierarchical Clustering',
+            fontsize=14,
+            x=0.45,
+            y=0.96
+        )
+        
+        #plt.tight_layout()
+        plt.savefig('virofrac_heatmap.png', dpi=300, bbox_inches='tight')
+        plt.show()
+        return g
     
+    with open(metadata_file, 'r') as f:
+        first_line = f.readline()
+        if '\t' in first_line:
+            sep = '\t'
+        elif ',' in first_line:
+            sep = ','
+        else:
+            sep = None
+    
+    metadata = pd.read_csv(metadata_file, sep=sep) if sep else pd.read_csv(metadata_file, sep=None, engine='python')
+
+    sample_col = 'sample' if 'sample' in metadata.columns.str.lower() else metadata.columns[0]
+    metadata = metadata.set_index(sample_col)
+    metadata = metadata.loc[matrix_df.index]
+
+    colors_combined = pd.DataFrame(index=matrix_df.index)
+    legend_handles = []
+
+    for idx, legend_col in enumerate(legend_columns):
+        if legend_col not in metadata.columns:
+            print(f"⚠️ Legend column not found, skipping")
+            continue
+    
+        values = metadata[legend_col]
+        unique_values = sorted(values.dropna().unique())
+
+        if color_columns and idx < len(color_columns):
+            color_col = color_columns[idx]
+            
+            if color_col in metadata.columns:
+                color_map = {}
+                for val in unique_values:
+                    mask = metadata[legend_col] == val
+                    colors_for_val = metadata.loc[mask, color_col].dropna().unique()
+                    if len(colors_for_val) > 0:
+                        color_map[val] = colors_for_val[0]
+                    else:
+                        fallback_idx = len(color_map) % 10
+                        color_map[val] = sns.color_palette('tab10')[fallback_idx]
+            else:
+                print(f"⚠️ Color column not found, using automatic colors")
+                palette = sns.color_palette('tab10', n_colors=len(unique_values))
+                color_map = dict(zip(unique_values, palette))
+        else:
+            palette = sns.color_palette('tab10', n_colors=len(unique_values))
+            color_map = dict(zip(unique_values, palette))
+    
+        values_filled = values.fillna('__NA__')
+        color_map['__NA__'] = '#FFFFFF'
+        row_colors = values_filled.map(color_map)
+        colors_combined[legend_col] = row_colors
+
+        if idx < len(legend_columns) - 1:
+            colors_combined[f'_space_{idx}'] = '#FFFFFF'
+        
+        legend_items = [Patch(facecolor=color_map[val], label=str(val)) 
+                       for val in unique_values]
+        legend_handles.append((legend_col, legend_items))
+
+    if len(colors_combined.columns) == 0:
+        print("⚠️ No valid columns, generating simple heatmap")
+        return get_heatmap_output(matrix, otu_df, unifrac_type, None, None, None)
+
     g = sns.clustermap(
         matrix,
         row_linkage=row_linkage,
         col_linkage=col_linkage,
+        row_colors=colors_combined,
+        col_colors=colors_combined,
         cmap='coolwarm',
         vmin=0,
         vmax=1,
         annot=False,
-        fmt='.3f',
-        figsize=(10, 8),
-        cbar_kws={
-            'label': 'UniFrac Distance',
-            'orientation': 'horizontal',
-            },
-        linewidths=0.5,
-        linecolor='white',
+        figsize=(15, 13),
+        cbar_kws={'label': 'UniFrac Distance'},
+        linewidths=0,
         xticklabels=matrix_df.columns,
-        yticklabels=matrix_df.index 
+        yticklabels=matrix_df.index,
+        dendrogram_ratio=(0.08, 0.08),
+        cbar_pos=(0.02, 0.92, 0.05, 0.15)
     )
     
+    g.ax_row_colors.set_xticklabels([])
+    g.ax_col_colors.set_yticklabels([])
+
+    for spine in g.ax_row_colors.spines.values():
+        spine.set_visible(False)
+
+    for spine in g.ax_col_colors.spines.values():
+        spine.set_visible(False)
+
+    g.ax_row_colors.tick_params(left=False, right=False, top=False, bottom=False)
+    g.ax_col_colors.tick_params(left=False, right=False, top=False, bottom=False)
+    g.figure.subplots_adjust(right=0.8)
+
+    legend_ax = g.figure.add_axes([0.85, 0.3, 0.15, 0.4])
+    legend_ax.axis('off')
+
+    y_start = 0.7
+    legend_height = 0.25
+
+    for idx, (col_name, handles) in enumerate(legend_handles):
+        y_pos = y_start - (idx * legend_height)
+        legend_ax = g.figure.add_axes([0.85, y_pos, 0.12, legend_height])
+        legend_ax.axis('off')
+        
+        legend_ax.legend(
+            handles=handles,
+            title=col_name,
+            frameon=True,
+            fontsize=9,
+            loc='upper left',
+            title_fontsize=10
+        )
+
     g.ax_heatmap.set_xlabel('Samples', fontsize=12)
     g.ax_heatmap.set_ylabel('Samples', fontsize=12)
-    plt.suptitle(f'{(unifrac_type).title()} Distance Matrix with Hierarchical Clustering',
-             fontsize=14, y=0.95)
     
-    plt.tight_layout()
+    plt.setp(g.ax_heatmap.xaxis.get_majorticklabels(), rotation=90, ha='right', fontsize=6)
+    plt.setp(g.ax_heatmap.yaxis.get_majorticklabels(), rotation=0, fontsize=6)
+    
+    g.figure.subplots_adjust(top=0.93) 
+    g.figure.suptitle(
+        f'{(unifrac_type).title()} Distance Matrix with Hierarchical Clustering',
+        fontsize=14,
+        x=0.45,
+        y=0.96
+    )
+    
     plt.savefig('virofrac_heatmap.png', dpi=300, bbox_inches='tight')
+    print("✅ Heatmap ready! Showing the final plot...")
     plt.show()
-
+    
+    print(f"✓ Heatmap saved in virofrac_heatmap.png")
+    
     return g
+
+
