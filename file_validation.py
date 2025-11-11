@@ -1,6 +1,7 @@
 import sys
 import pandas as pd
 import argparse
+from utils import GlobalTimer
 
 # This function should be the one putting the taxa in a
 # browsable list for the tree prune function to work.
@@ -35,10 +36,12 @@ def get_validation_otu_table(filepath):
             raise ValueError("OTU table has no sample columns")
         
         df = pd.read_csv(filepath, sep=separator)
-        print(f"✅ OTU table validated")
+        GlobalTimer.log("✅ OTU table validated")
+        #print("✅ OTU table validated")
     
     except Exception as e:
-        print(f"❌ Error validation OTU Table: {e}")
+        GlobalTimer.log("❌ Error validation OTU Table: {e}")
+        #print("❌ Error validation OTU Table: {e}")
         sys.exit(1)
 
 def get_validation_tax_table(filepath):
@@ -72,10 +75,12 @@ def get_validation_tax_table(filepath):
             raise ValueError("Tax table has no taxonomic columns")
         
         df = pd.read_csv(filepath, sep=separator)
-        print(f"✅ Tax table validated")
+        GlobalTimer.log("✅ Tax table validated")
+        #print("✅ Tax table validated")
     
     except Exception as e:
-        print(f"❌ Error validation Tax Table: {e}")
+        GlobalTimer.log("❌ Error validation Tax Table: {e}")
+        #print("❌ Error validation Tax Table: {e}")
         sys.exit(1)
 
 def get_validation_reads_file(filepath):
@@ -86,10 +91,12 @@ def get_validation_reads_file(filepath):
         if first_line.startswith("@") == False:
             raise ValueError(".fastq file is not valid")
         
-        print(f"✅ Reads file validated")
+        GlobalTimer.log("✅ Reads file validated")
+        #print("✅ Reads file validated")
         
     except Exception as e:
-        print(f"❌ Error validation reads file: {e}")
+        GlobalTimer.log("❌ Error validation reads file: {e}")
+        #print(f"❌ Error validation reads file: {e}")
         sys.exit(1)
 
 def get_validation_newick_file(filepath):
@@ -108,10 +115,12 @@ def get_validation_newick_file(filepath):
                 f"Unbalanced parentheses: {open_parens} '(' vs {close_parens} ')'"
             )
         
-        print(f"✅ Newick file validated")
+        GlobalTimer.log("✅ Newick file validated")
+        #print("✅ Newick file validated")
         
     except Exception as e:
-        print(f"❌ Error validation newick file: {e}")
+        GlobalTimer.log("❌ Error validation newick file: {e}")
+        #print(f"❌ Error validation newick file: {e}")
         sys.exit(1)
 
 def main():

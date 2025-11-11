@@ -4,7 +4,7 @@ import tree_treatment as treetr
 import pandas as pd
 import output_control as oc
 #Provisional
-
+from utils import GlobalTimer
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
@@ -68,7 +68,8 @@ def get_input_otu_table():
     args = parse_arguments()
     input_otu = pd.read_csv(args.otu_table, sep=None, engine='python')
 
-    print("✅ OTU Table correctly loaded")
+    #print("✅ OTU Table correctly loaded")
+    GlobalTimer.log("✅ OTU Table correctly loaded")
 
     return input_otu
 
@@ -80,7 +81,8 @@ def get_input_tax_table():
     
     input_tax = input_tax.replace(r'^\s*$', pd.NA, regex=True)
 
-    print("✅ Taxonomic Table correctly loaded")
+    #print("✅ Taxonomic Table correctly loaded")
+    GlobalTimer.log("✅ Taxonomic Table correctly loaded")
 
     return input_tax
 
@@ -92,12 +94,15 @@ def get_input_otu_tree():
         otu_tax = get_input_tax_table()
         input_tree = treetr.get_otu_tree(otu_tax)
     
-    print("✅ Tree correctly loaded")
+    #print("✅ Tree correctly loaded")
+    GlobalTimer.log("✅ Tree correctly loaded")
 
     return input_tree
 
 def main():
-    print("Managing inputs...")
+    #print("Managing inputs...")
+    GlobalTimer.log("Managing inputs...")
+
     args = parse_arguments()
     otu_table =  get_input_otu_table()
     otu_tree = get_input_otu_tree()

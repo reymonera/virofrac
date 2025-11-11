@@ -9,6 +9,7 @@ from scipy.spatial.distance import squareform
 from tqdm import tqdm
 from matplotlib.patches import Patch
 from matplotlib.colors import LinearSegmentedColormap
+from utils import GlobalTimer
 
 # This function manages the partial OTU tables that will
 # be used as an input when compairing each pair.
@@ -53,7 +54,7 @@ def get_frac_matrix_output(otu_df, tree, unifrac_type):
     
     for (i, j) in tqdm(combinations(range(n), 2), 
                        total=total_pairs,
-                       desc="Brewing your UniFrac results",
+                       desc=f"[{GlobalTimer.elapsed():7.2f}s] Brewing UniFrac",
                        unit="pairs"):
         
         col_i = sample_names[i]
@@ -82,13 +83,19 @@ def get_dataframe_from_matrix(matrix, otu_df):
     sample_names = otu_df.columns[1:].tolist()
     matrix_as_df = pd.DataFrame(matrix, index=sample_names, columns=sample_names)
 
+    GlobalTimer.log("Saving matrix as a dataframe...")
+
     matrix_as_df.to_csv('matrix_as_dataframe.tsv', sep='\t')
 
     return matrix_as_df
 
+# This function controls the heatmap gradient for the
+# final plot. It can accept 2 hexacodes as input for
+# a custom color scale. Palettes are also available.
 def get_color_gradient_for_heatmap(color_gradient):
     if not color_gradient:
-        print("Using default colormap gradient: 'coolwarm'")
+        #print("Using default colormap gradient: 'coolwarm'")
+        GlobalTimer.log("Using default colormap gradient: 'coolwarm'")
         return 'coolwarm'
     
     if ',' in color_gradient:
@@ -97,10 +104,12 @@ def get_color_gradient_for_heatmap(color_gradient):
     
     if isinstance(color_gradient, str):
         if color_gradient.startswith('#'):
-            print('Color pair not specified, using white in the custom gradiet...')
+            #print('Color pair not specified, using white in the custom gradiet...')
+            GlobalTimer.log("Color pair not specified, using white in the custom gradiet...")
             return LinearSegmentedColormap.from_list('custom', ['#FFFFFF', color_gradient])
         else:
-            print(f"Using predefined colormap: '{color_gradient}'")
+            #print(f"Using predefined colormap: '{color_gradient}'")
+            GlobalTimer.log("Using predefined colormap")
             return color_gradient
     
 
@@ -148,9 +157,11 @@ def get_heatmap_output(matrix, otu_df, unifrac_type, color_gradient, metadata_fi
         )
         
         plt.savefig('virofrac_heatmap.png', dpi=300, bbox_inches='tight')
-        print("✅ Heatmap ready! Showing the final plot...")
+        GlobalTimer.log("✅ Heatmap ready! Showing the final plot...")
+        #print("✅ Heatmap ready! Showing the final plot...")
         plt.show()
-        print(f"✓ Heatmap saved in virofrac_heatmap.png")
+        GlobalTimer.log("✅ Heatmap ready! Showing the final plot...")
+        #print(f"✅ Heatmap saved in virofrac_heatmap.png")
         return g
     
     with open(metadata_file, 'r') as f:
@@ -173,7 +184,8 @@ def get_heatmap_output(matrix, otu_df, unifrac_type, color_gradient, metadata_fi
 
     for idx, legend_col in enumerate(legend_columns):
         if legend_col not in metadata.columns:
-            print(f"⚠️ Legend column not found, skipping")
+            GlobalTimer.log("⚠️ Legend column not found, skipping")
+            #print("⚠️ Legend column not found, skipping")
             continue
     
         values = metadata[legend_col]
@@ -193,7 +205,8 @@ def get_heatmap_output(matrix, otu_df, unifrac_type, color_gradient, metadata_fi
                         fallback_idx = len(color_map) % 10
                         color_map[val] = sns.color_palette('tab10')[fallback_idx]
             else:
-                print(f"⚠️ Color column not found, using automatic colors")
+                GlobalTimer.log("⚠️ Color column not found, using automatic colors")
+                #print("⚠️ Color column not found, using automatic colors")
                 palette = sns.color_palette('tab10', n_colors=len(unique_values))
                 color_map = dict(zip(unique_values, palette))
         else:
@@ -213,7 +226,8 @@ def get_heatmap_output(matrix, otu_df, unifrac_type, color_gradient, metadata_fi
         legend_handles.append((legend_col, legend_items))
 
     if len(colors_combined.columns) == 0:
-        print("⚠️ No valid columns, generating simple heatmap")
+        GlobalTimer.log("⚠️ No valid columns, generating simple heatmap")
+        #print("⚠️ No valid columns, generating simple heatmap")
         return get_heatmap_output(matrix, otu_df, unifrac_type, None, None, None)
 
     g = sns.clustermap(
@@ -286,9 +300,11 @@ def get_heatmap_output(matrix, otu_df, unifrac_type, color_gradient, metadata_fi
     plt.savefig('virofrac_heatmap.png', dpi=300, bbox_inches='tight')
     plt.savefig('virofrac_heatmap.svg', format='svg', bbox_inches='tight')
 
-    print("✅ Heatmap ready! Showing the final plot...")
+    GlobalTimer.log("✅ Heatmap ready! Showing the final plot...")
+    #print("✅ Heatmap ready! Showing the final plot...")
     plt.show()
-    print(f"✓ Heatmap saved in virofrac_heatmap.png")
+    GlobalTimer.log("✅ Heatmap saved in virofrac_heatmap.png")
+    #print("✅ Heatmap saved in virofrac_heatmap.png")
     
     return g
 

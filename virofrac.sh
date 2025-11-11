@@ -9,6 +9,7 @@ if [[ $# -eq 0 ]]; then
     echo ' \\//  )(  )  \( () )) _) )  \  /__\( (_ '
     echo ' (__) (__)(_)\_)\__/(_)  (_)\_)(_)(_)\__)'
     echo ""
+    echo "Virofrac v. 1.0.0"
     echo "Usage: $(basename "$0") [options]"
     echo ""
     echo "Made with elegance 🍷"
@@ -27,7 +28,7 @@ if [[ $# -eq 0 ]]; then
     echo "  -nw, --normalized-weighted-unifrac      Selects the normalized weighted unifrac option"
     echo ""
     echo "Input Tree options:"
-    echo "  -tt, --tax-tree                         Selects the taxonomic tree option"
+    echo "  -tt, --tax-tree                         Selects the taxonomic tree mode"
     echo "  -pt, --phy-tree [file]                  Selects the phylogenetic tree option [.newick]"
     echo "  -nt, --network                          Selects tree from network option"
     echo ""
@@ -165,14 +166,16 @@ while [[ $# -gt 0 ]]; do
                 echo "  -nw, --normalized-weighted-unifrac      Selects the normalized weighted unifrac option"
                 echo ""
                 echo "Input Tree options:"
-                echo "  -tt, --tax-tree                         Selects the taxonomic tree option"
+                echo "  -tt, --tax-tree                         Selects the taxonomic tree mode"
                 echo "  -pt, --phy-tree [file]                  Selects the phylogenetic tree option [.newick]"
                 echo "  -nt, --network                          Selects tree from network option"
                 echo ""
-                echo "Metdata options:"
+                echo "Metdata/Plot options:"
                 echo "  -m, --metadata [file]                   A metadata file used for the final heatmap plot. If not used, it will output a default plot. [.tsv|.csv|.tab|.tabular]"
-                echo "  -l, --legend-column [column_name]       This will apply color strips and a legend to the final heatmap plot."
-                echo "  -c, --color-column [column_name]        If used, the script will apply the colors in the selected column."
+                echo "  -l, --legend-column [column_name]       This will apply color strips and a legend to the final heatmap plot. Requires a specified color column."
+                echo "  -c, --color-column [column_name]        If used, the script will apply the colors in the selected column. Requires a specified legend column."
+                echo "                                          NOTE: Specify the legend columns and then the color columns. The script will use the corresponding order."
+                echo "  -g, --color-gradient [string]           Deafult: 'coolwarm'. When used, user can specify another gradient or a custom gradient using hexacode"
                 echo ""
             exit 0
             ;;
@@ -183,6 +186,19 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+# --------------------------------------
+#             CITATION
+# --------------------------------------
+echo "============================================================"
+echo "Thank you for using Virofrac v.1.0.0!"
+echo ""
+echo "If you use this tool in your work, please cite as following:"
+echo ""
+echo "Castillo-Vilcahuaman et al. Virofrac loves Timoteo"
+echo "The UDC Journal, 25(16):2078–2079 (2026)." 
+echo "doi:10.1093/judc/btp352"
+echo "============================================================"
 
 # Starts validation with Bash.
 echo "Checking if files are valid..."
@@ -211,7 +227,7 @@ INPUT_COUNT=0
 
 if [[ $INPUT_COUNT -eq 0 ]]; then
     echo "Error: Must provide either -o/--otu-table OR -r/--reads"
-    exit 1
+    exit 1#17becf
 fi
 
 if [[ $INPUT_COUNT -gt 1 ]]; then
