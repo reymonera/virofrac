@@ -6,7 +6,19 @@ The ViroFrac pipeline is a software package for the estimation of the distance b
 
 ### Relatedness methods
 
+#### Taxonomic tree
+
+#### Network
+
+#### Custom tree
+
 ### Output
+
+#### Matrix
+
+#### Tree/Network
+
+#### Heatmap
 
 ## Installation
 
