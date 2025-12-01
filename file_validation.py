@@ -22,7 +22,7 @@ def get_validation_otu_table(filepath):
         df = pd.read_csv(filepath, sep=separator)
         otu_col = None
         
-        otu_col_candidates = ['#OTU ID', 'OTU ID', 'OTU_ID', '#OTU_ID', 'OTUID']
+        otu_col_candidates = ['#OTU ID', 'OTU ID', 'OTU_ID', '#OTU_ID', 'OTUID', 'otu_id']
         for candidate in otu_col_candidates:
             if candidate in df.columns:
                 otu_col = candidate
@@ -61,7 +61,7 @@ def get_validation_tax_table(filepath):
         df = pd.read_csv(filepath, sep=separator)
         otu_col = None
         
-        otu_col_candidates = ['#OTU ID', 'OTU ID', 'OTU_ID', '#OTU_ID', 'OTUID']
+        otu_col_candidates = ['#OTU ID', 'OTU ID', 'OTU_ID', '#OTU_ID', 'OTUID', 'otu_id']
         for candidate in otu_col_candidates:
             if candidate in df.columns:
                 otu_col = candidate

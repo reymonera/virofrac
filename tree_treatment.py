@@ -2,6 +2,7 @@ import pandas as pd
 from ete3 import Tree
 #Provisional
 import time
+from utils import GlobalTimer
 
 # This function gets the tree stored in the database, and
 # outputs the original .newick
@@ -37,7 +38,7 @@ def get_otu_dictionary(otu_tax_table):
 # then it will search for matches in the tree (node
 # matches), it will save the ancestors and output a
 # pruned tree with its ancestors.
-def get_pruned_tree(otu_tax_table):
+def get_pruned_tree_1(otu_tax_table):
     nodes_to_keep = get_otus_taxa_list(otu_tax_table)
     tree = Tree(get_taxa_text_tree(), format=1)
 
@@ -123,7 +124,7 @@ def get_nan_non_nan_values(taxonomy_in_dictionary):
 # calculate the maximum depth of. a tree, so that any NA
 # OTUs will be placed correctly with the optimum distance
 # on the tree. Every OTU should be on the species level.
-def get_otu_tree(otu_tax_table):
+def get_otu_tree_1(otu_tax_table):
     tree = get_pruned_tree(otu_tax_table)
     otu_dictionary = get_otu_dictionary(otu_tax_table)
 
@@ -189,3 +190,86 @@ def get_otu_tree(otu_tax_table):
 #     print(f"✓ OTUs agregados: {time.time() - start:.2f}s")
 #     tree.write(outfile="otu_tree.newick", format=1)
 #     return tree
+
+def get_pruned_tree(otu_tax_table):
+    nodes_to_keep = get_otus_taxa_list(otu_tax_table)
+    tree = Tree(get_taxa_text_tree(), format=1)
+
+    node_index = {node.name: node for node in tree.traverse() if node.name}
+    tree_nodes_set = set(node_index.keys())
+
+    # Filtrar solo nodos que existen en el árbol
+    valid_nodes = [n for n in nodes_to_keep if n in tree_nodes_set]
+    missing_nodes = [n for n in nodes_to_keep if n not in tree_nodes_set]
+    
+    if missing_nodes:
+        print(f"⚠️  {len(missing_nodes)} nodos no encontrados en árbol ICTV:")
+        print(f"   {missing_nodes[:10]}...")
+
+    ancestors = []
+    ancestors_and_nodes = list(valid_nodes)
+
+    for node_name in valid_nodes:
+        node = node_index.get(node_name)
+        if node:
+            ancestors.extend(node.get_ancestors())
+    
+    for ancestor in ancestors:
+        if ancestor.name:
+            ancestors_and_nodes.append(ancestor.name)
+
+    unique_nodes = list(set(ancestors_and_nodes))
+    
+    if not unique_nodes:
+        raise ValueError("No se encontró ningún nodo válido en el árbol ICTV")
+    
+    tree.prune(unique_nodes, preserve_branch_length=True)
+    tree.write(outfile="pruned_tree.newick", format=1)
+    
+    return tree
+
+
+def get_otu_tree(otu_tax_table):
+    # Obtener max_depth del árbol ICTV original
+    full_tree = Tree(get_taxa_text_tree(), format=1)
+    max_depth = max(full_tree.get_distance(leaf) for leaf in full_tree.iter_leaves())
+    
+    # Ahora sí podar
+    tree = get_pruned_tree(otu_tax_table)
+    otu_dictionary = get_otu_dictionary(otu_tax_table)
+
+    node_index = {node.name: node for node in tree.traverse() if node.name}
+    #max_depth = max(tree.get_distance(leaf) for leaf in tree.iter_leaves())
+    # max_depth was being annoying and kind of was being calculated from the lowest level encountered in the table.
+    # so now it is taking the max_deth from the full tree, which will make it stay where it is.
+    # this has made the process far more slower now, optimization should be the next step for the tax option.
+
+    otus_not_placed = []
+
+    for (otu_id, taxonomy) in otu_dictionary.items():
+        
+        non_nan_values, nan_count = get_nan_non_nan_values(taxonomy)
+        
+        if not non_nan_values:
+            continue
+        
+        # Buscar desde el más específico hacia arriba hasta encontrar nodo válido
+        node = None
+        for tax_name in reversed(non_nan_values):
+            node = node_index.get(tax_name)
+            if node:
+                break
+        
+        if node:
+            current_depth = tree.get_distance(node)
+            missing_depth = max_depth - current_depth
+            node.add_child(name=otu_id, dist=missing_depth)
+        else:
+            otus_not_placed.append(otu_id)
+    
+    if otus_not_placed:
+        print(f"⚠️  {len(otus_not_placed)} OTUs no pudieron colocarse en el árbol")
+    
+    tree.write(outfile="otu_tree.newick", format=1)
+
+    return tree
