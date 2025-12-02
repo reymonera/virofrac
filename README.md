@@ -24,6 +24,14 @@ ViroFrac generates outputs for comprehensive analysis and visualization:
 
 Distance values are exported in a matrix output as a tabular-separated format (`matrix_as_dataframe.tsv`). This matrix can be imported into other analyticas or visualization packaged for downstream analysis.
 
+**Format:**
+```
+        Sample1    Sample2    Sample3
+Sample1 0.000      0.245      0.678
+Sample2 0.245      0.000      0.543
+Sample3 0.678      0.543      0.000
+```
+
 #### Tree/Network
 
 When the taxonomic tree option is selected, ViroFrac outputs the pruned phylogenetic tree used for calculations (`otu_tree.newick`). This tree is derived from the ICTV hierarchical classification and only includes the viral taxa present in your dataset.
