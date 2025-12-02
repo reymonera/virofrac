@@ -428,15 +428,15 @@ echo "Checking if files are correctly formatted..."
 # --------------------------------------
 #     PYTHON -  VALIDATION
 # --------------------------------------
-python3 file_validation.py --otu-table "$OTU_TABLE_FILE" || exit 1
-python3 file_validation.py --tax-table "$TAX_TABLE_FILE" || exit 1
+python3 -m src.file_validation --otu-table "$OTU_TABLE_FILE" || exit 1
+python3 -m src.file_validation --tax-table "$TAX_TABLE_FILE" || exit 1
 
 if [[ -f $READS_FILE ]]; then
-    python3 file_validation.py --reads "$READS_FILE" || exit 1
+    python3 -m src.file_validation --reads "$READS_FILE" || exit 1
 fi
 
 if [[ $TREE_TYPE == 'phylogenetic' ]]; then
-    python3 file_validation.py --phylo-tree "$PHY_TREE_FILE" || exit 1
+    python3 -m src.file_validation --phylo-tree "$PHY_TREE_FILE" || exit 1
 fi
 
 # Starts validation with workflow.
@@ -446,7 +446,7 @@ echo "Starting with workflow..."
 #     PYTHON - WORKFLOW STARTS
 # --------------------------------------
 
-PYTHON_CMD="python3 virofrac_main.py"
+PYTHON_CMD="python3 -m src.virofrac_main"
 
 # Deals with the OTU Table inpt
 if [[ -n "$OTU_TABLE_FILE" ]] && [[ -n "$TAX_TABLE_FILE" ]]; then
