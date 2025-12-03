@@ -1,6 +1,6 @@
 import argparse
 from pathlib import Path
-import src.tree_treatment as treetr
+import src.tree_control as treetr
 import pandas as pd
 import src.output_control as oc
 #Provisional
