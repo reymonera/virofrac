@@ -1,3 +1,4 @@
+import subprocess
 import networkx as nx
 import numpy as np
 import pandas as pd
@@ -8,6 +9,34 @@ def get_count_table(count_table_path):
     indexed_count_table = table.set_index([0])
 
     return indexed_count_table
+
+def get_ani_matrix_vclust(input_fasta, output_dir):
+    # Prefilter
+    print("Prefiltering sponsored by vclust...")
+    cmd_prefilter = [
+        'vclust', 'prefilter',
+        '-i', input_fasta,
+        '-o', f'{output_dir}/filter.txt'
+    ]
+    subprocess.run(cmd_prefilter, check=True)
+
+    # Alignment
+    print("Alignment sponsored by vclust...")
+    cmd_align = [
+        'vclust', 'align',
+        '-i', input_fasta,
+        '-o', f'{output_dir}/ani.tsv',
+        '--filter', f'{output_dir}/filter.txt'
+    ]
+    subprocess.run(cmd_align, check=True)
+
+    matrix = pd.read_csv(f'{output_dir}/ani.tsv', sep='\t')
+
+    return matrix
+
+def get_gene_sharing_matrix_vcontact():
+    matrix = 0
+    return matrix
 
 def get_network(matrix_file):
     matrix = np.loadtxt(matrix_file, delimiter=",", skiprows=1)
