@@ -18,7 +18,7 @@ if [[ $# -eq 0 ]]; then
     echo "  -h, --help                              Shows this helpful text :)"
     echo ""
     echo "Input options:"
-    echo "  -r, --reads [file]                      Selects reads file"
+    echo "  -f, --fasta [file]                      Selects .fasta file"
     echo "  -o, --otu-table [file]                  Selects OTU table [.tsv|.csv|.tab|.tabular]"
     echo "  -t, --tax-table [file]                  Selects taxonomic table [.tsv|.csv|.tab|.tabular]"
     echo ""
@@ -27,12 +27,16 @@ if [[ $# -eq 0 ]]; then
     echo "  -uw, --unnormalized-weighted-unifrac    Selects the unnormalized weighted unifrac option"
     echo "  -nw, --normalized-weighted-unifrac      Selects the normalized weighted unifrac option"
     echo ""
-    echo "Input Tree options:"
+    echo "Tree options:"
     echo "  -tt, --tax-tree                         Selects the taxonomic tree mode"
     echo "  -pt, --phy-tree [file]                  Selects the phylogenetic tree option [.newick]"
-    echo "  -nt, --network                          Selects tree from network option"
     echo ""
-    echo "Metdata/Plot options:"
+    echo "Network options:"
+    echo "  -nt, --network                          Selects network option"
+    echo "  --ani                                   Selects ANI based network option (works wth vclust)"
+    echo "  --gene-sharing                          Selects gene-sharing based network option (works wth vcontact3)"
+    echo ""
+    echo "Metadata/Plot options:"
     echo "  -m, --metadata [file]                   A metadata file used for the final heatmap plot. If not used, it will output a default plot. [.tsv|.csv|.tab|.tabular]"
     echo "  -l, --legend-column [column_name]       This will apply color strips and a legend to the final heatmap plot. Requires a specified color column."
     echo "  -c, --color-column [column_name]        If used, the script will apply the colors in the selected column. Requires a specified legend column."
@@ -50,7 +54,7 @@ TREE_NET_USED=false
 # UniFrac flags detection
 UNIFRAC_UU_USED=false
 UNIFRAC_UW_USED=false
-UNIFRAC_NW_USED=
+UNIFRAC_NW_USED=false
 
 # Arrays for metadata
 LEGEND_COLUMNS=()
@@ -74,12 +78,12 @@ while [[ $# -gt 0 ]]; do
             TAX_TABLE_FILE="$2"
             shift 2
             ;;
-        -r|--reads)
+        -f|--fasta)
             if [[ -z "${2:-}" ]]; then
-                echo "Error: -r/--reads requires reads file"
+                echo "Error: -f/--fasta requires fasta file"
                 exit 1
             fi
-            READS_FILE="$2"
+            FASTA_FILE="$2"
             shift 2
             ;;
         -tt|--tax-tree)
@@ -148,6 +152,7 @@ while [[ $# -gt 0 ]]; do
                 echo ' \\//  )(  )  \( () )) _) )  \  /__\( (_ '
                 echo ' (__) (__)(_)\_)\__/(_)  (_)\_)(_)(_)\__)'
                 echo ""
+                echo "Virofrac v. 1.0.0"
                 echo "Usage: $(basename "$0") [options]"
                 echo ""
                 echo "Made with elegance 🍷"
@@ -156,7 +161,7 @@ while [[ $# -gt 0 ]]; do
                 echo "  -h, --help                              Shows this helpful text :)"
                 echo ""
                 echo "Input options:"
-                echo "  -r, --reads [file]                      Selects reads file"
+                echo "  -f, --fasta [file]                      Selects .fasta file"
                 echo "  -o, --otu-table [file]                  Selects OTU table [.tsv|.csv|.tab|.tabular]"
                 echo "  -t, --tax-table [file]                  Selects taxonomic table [.tsv|.csv|.tab|.tabular]"
                 echo ""
@@ -165,12 +170,16 @@ while [[ $# -gt 0 ]]; do
                 echo "  -uw, --unnormalized-weighted-unifrac    Selects the unnormalized weighted unifrac option"
                 echo "  -nw, --normalized-weighted-unifrac      Selects the normalized weighted unifrac option"
                 echo ""
-                echo "Input Tree options:"
+                echo "Tree options:"
                 echo "  -tt, --tax-tree                         Selects the taxonomic tree mode"
                 echo "  -pt, --phy-tree [file]                  Selects the phylogenetic tree option [.newick]"
-                echo "  -nt, --network                          Selects tree from network option"
                 echo ""
-                echo "Metdata/Plot options:"
+                echo "Network options:"
+                echo "  -nt, --network                          Selects network option"
+                echo "  --ani                                   Selects ANI based network option (works wth vclust)"
+                echo "  --gene-sharing                          Selects gene-sharing based network option (works wth vcontact3)"
+                echo ""
+                echo "Metadata/Plot options:"
                 echo "  -m, --metadata [file]                   A metadata file used for the final heatmap plot. If not used, it will output a default plot. [.tsv|.csv|.tab|.tabular]"
                 echo "  -l, --legend-column [column_name]       This will apply color strips and a legend to the final heatmap plot. Requires a specified color column."
                 echo "  -c, --color-column [column_name]        If used, the script will apply the colors in the selected column. Requires a specified legend column."
@@ -218,24 +227,24 @@ if [[ -z "$OTU_TABLE_FILE" ]] && [[ -z "$TAX_TABLE_FILE" ]]; then
     echo "         --tax-table is only used with --otu-table"
 fi
 
-# --------------------------------------
-#    CHECK IF OTU_TABLE OR READS
-# --------------------------------------
+# # --------------------------------------
+# #    CHECK IF OTU_TABLE OR READS
+# # --------------------------------------
 
-INPUT_COUNT=0
-[[ -n "$OTU_TABLE_FILE" ]] && ((INPUT_COUNT++))
-[[ -n "$READS_FILE" ]] && ((INPUT_COUNT++))
+# INPUT_COUNT=0
+# [[ -n "$OTU_TABLE_FILE" ]] && ((INPUT_COUNT++))
+# [[ -n "$FASTA_FILE" ]] && ((INPUT_COUNT++))
 
-if [[ $INPUT_COUNT -eq 0 ]]; then
-    echo "Error: Must provide either -o/--otu-table OR -r/--reads"
-    exit 1#17becf
-fi
+# if [[ $INPUT_COUNT -eq 0 ]]; then
+#     echo "Error: Must provide either -o/--otu-table OR -f/--fasta"
+#     exit 1#17becf
+# fi
 
-if [[ $INPUT_COUNT -gt 1 ]]; then
-    echo "Error: Cannot use both -o/--otu-table and -r/--reads together"
-    echo "       Please choose only one input type"
-    exit 1
-fi
+# if [[ $INPUT_COUNT -gt 1 ]]; then
+#     echo "Error: Cannot use both -o/--otu-table and -f/--fasta together"
+#     echo "       Please choose only one input type"
+#     exit 1
+# fi
 
 # --------------------------------------
 #      MUTUALLY EXCLUSIVE TREES
@@ -315,6 +324,10 @@ if [[ ${#COLOR_COLUMNS[@]} -gt 0 ]] && [[ ${#COLOR_COLUMNS[@]} -ne ${#LEGEND_COL
 fi
 
 # --------------------------------------
+#           NETWORK OPTIONS
+# --------------------------------------
+
+# --------------------------------------
 #            MISSING FILES
 # --------------------------------------
 # Handling a missing OTU_TABLE_FILE
@@ -325,10 +338,10 @@ if [[ -n "$OTU_TABLE_FILE" ]]; then
     fi
 fi
 
-# Handling a missing READS_FILE
-if [[ -n "$READS_FILE" ]]; then
-    if [[ ! -f "$READS_FILE" ]]; then
-        echo "Error: Reads file not found: $READS_FILE"
+# Handling a missing FASTA_FILE
+if [[ -n "$FASTA_FILE" ]]; then
+    if [[ ! -f "$FASTA_FILE" ]]; then
+        echo "Error: Reads file not found: $FASTA_FILE"
         exit 1
     fi
 fi
@@ -358,9 +371,9 @@ if [[ -n "$OTU_TABLE_FILE" ]]; then
     fi
 fi
 
-# Handling an empty READS_FILE
-if [[ -n "$READS_FILE" ]]; then
-    if [[ ! -s "$READS_FILE" ]]; then
+# Handling an empty FASTA_FILE
+if [[ -n "$FASTA_FILE" ]]; then
+    if [[ ! -s "$FASTA_FILE" ]]; then
         echo "Error: Reads file is empty"
         exit 1
     fi
@@ -382,15 +395,15 @@ fi
 # --------------------------------------
 #            FILE EXTENSIONS
 # --------------------------------------
-# Handling file extensions in READS_FILE
-if [[ -n "$READS_FILE" ]]; then
-    case "$READS_FILE" in
+# Handling file extensions in FASTA_FILE
+if [[ -n "$FASTA_FILE" ]]; then
+    case "$FASTA_FILE" in
         *.fastq|*.fq|*.fastq.gz|*.fq.gz)
             ;;
         *)
             echo "Error: Reads file doesn't have expected extension"
             echo "Expected: .fastq, .fq, .fasta, .fa, or .gz compressed versions" # Pretty sure it is just .fastq or .fq, but we haven't reached this stage yet.
-            echo "Got: $READS_FILE"
+            echo "Got: $FASTA_FILE"
             exit 1
             ;;
     esac
@@ -431,8 +444,8 @@ echo "Checking if files are correctly formatted..."
 python3 -m src.file_validation --otu-table "$OTU_TABLE_FILE" || exit 1
 python3 -m src.file_validation --tax-table "$TAX_TABLE_FILE" || exit 1
 
-if [[ -f $READS_FILE ]]; then
-    python3 -m src.file_validation --reads "$READS_FILE" || exit 1
+if [[ -f $FASTA_FILE ]]; then
+    python3 -m src.file_validation --reads "$FASTA_FILE" || exit 1
 fi
 
 if [[ $TREE_TYPE == 'phylogenetic' ]]; then
@@ -451,8 +464,8 @@ PYTHON_CMD="python3 -m src.virofrac_main"
 # Deals with the OTU Table inpt
 if [[ -n "$OTU_TABLE_FILE" ]] && [[ -n "$TAX_TABLE_FILE" ]]; then
     PYTHON_CMD="$PYTHON_CMD --otu-table \"$OTU_TABLE_FILE\" --tax-table \"$TAX_TABLE_FILE\""
-elif [[ -n "$READS_FILE" ]]; then
-    PYTHON_CMD="$PYTHON_CMD --reads \"$READS_FILE\""
+elif [[ -n "$FASTA_FILE" ]]; then
+    PYTHON_CMD="$PYTHON_CMD --reads \"$FASTA_FILE\""
 fi
 
 # Deals with the used tree

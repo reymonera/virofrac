@@ -38,8 +38,8 @@ def get_gene_sharing_matrix_vcontact():
     matrix = 0
     return matrix
 
-def get_network(matrix_file):
-    matrix = np.loadtxt(matrix_file, delimiter=",", skiprows=1)
+def get_network(matrix):
+    #matrix = np.loadtxt(matrix_file, delimiter=",", skiprows=1)
     network = nx.from_numpy_array(matrix)
 
     return network

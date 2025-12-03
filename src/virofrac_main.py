@@ -16,7 +16,7 @@ def parse_arguments():
     )
 
     parser.add_argument(
-        '--reads',
+        '--fasta',
         type=Path
     )
 
@@ -99,13 +99,27 @@ def get_input_otu_tree():
 
     return input_tree
 
+def get_input_fasta_file():
+    args = parse_arguments()
+    fasta_file = args.fasta
+    
+    #print("✅ Tree correctly loaded")
+    GlobalTimer.log("✅ Fasta file correctly loaded")
+
+    return fasta_file
+
 def main():
     #print("Managing inputs...")
     GlobalTimer.log("Managing inputs...")
 
     args = parse_arguments()
     otu_table =  get_input_otu_table()
-    otu_tree = get_input_otu_tree()
+    
+    if args.tree_type.strip() == 'phylogenetic' or args.tree_type.strip() == 'taxonomic':
+        otu_tree = get_input_otu_tree()
+
+    if args.tree_type.strip() == 'network':
+        fasta_file = get_input_fasta_file()
 
     matrix = oc.get_frac_matrix_output(otu_table, otu_tree, args.unifrac_type)
     oc.get_heatmap_output(
