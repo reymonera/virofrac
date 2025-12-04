@@ -1,9 +1,9 @@
 import argparse
 from pathlib import Path
-import src.tree_control as treetr
 import pandas as pd
+import src.tree_control as treetr
 import src.output_control as oc
-#Provisional
+import src.network_control as nc
 from src.utils import GlobalTimer
 
 def parse_arguments():
@@ -85,7 +85,7 @@ def parse_arguments():
 
 def get_input_otu_table():
     args = parse_arguments()
-    input_otu = pd.read_csv(args.otu_tablesharing, sep=None, engine='python')
+    input_otu = pd.read_csv(args.otu_table, sep=None, engine='python')
 
     #print("✅ OTU Table correctly loaded")
     GlobalTimer.log("✅ OTU Table correctly loaded")
@@ -118,14 +118,22 @@ def get_input_otu_tree():
 
     return input_tree
 
-def get_input_fasta_file():
+def get_input_network():
     args = parse_arguments()
     fasta_file = args.fasta
+    count_otu_table = get_input_otu_table()
+    output_dir = args.vclust_output_dir
+    threshold = args.threshold
+    network_method = args.network_method
     
-    #print("✅ Tree correctly loaded")
     GlobalTimer.log("✅ Fasta file correctly loaded")
-
-    return fasta_file
+    
+    if network_method == 'ani':
+        input_network = nc.get_input_ani_network(fasta_file, output_dir, threshold, count_otu_table)
+        return input_network
+    elif network_method == 'gene-sharing':
+        return "LOL"
+    
 
 def main():
     #print("Managing inputs...")
@@ -134,6 +142,7 @@ def main():
     args = parse_arguments()
     otu_table =  get_input_otu_table()
     
+    # Check if this is importing an input tree
     if args.tree_type.strip() == 'phylogenetic' or args.tree_type.strip() == 'taxonomic':
         GlobalTimer.log("Implementing the tree option...")
         otu_tree = get_input_otu_tree()
@@ -143,25 +152,9 @@ def main():
         if not args.network_method:
             raise ValueError("Network tree type requires --network-method (ani or gene-sharing)")
         GlobalTimer.log("Implementing the network option...")
-
-        fasta_file = get_input_fasta_file()
-
-        if args.network_method == 'ani':
-            matrix = oc.get_net_frac_matrix_output(
-                otu_table, 
-                fasta_file, 
-                args.unifrac_type,
-                args.network_method,
-                args.threshold,
-                args.vclust_output_dir
-            )
-        elif args.network_method == 'gene-sharing':
-            matrix = oc.get_net_frac_matrix_output(
-                otu_table, 
-                fasta_file, 
-                args.unifrac_type,
-                args.network_method
-            )
+        
+        network = get_input_network()
+        matrix = oc.get_net_frac_matrix_output(network, args.unifrac_type, otu_table)
 
     oc.get_heatmap_output(
         matrix, 

@@ -246,11 +246,12 @@ echo "Checking if files are valid..."
 # --------------------------------------
 #    TAX-TABLE REQUIRED WITH OTU-TABLE
 # --------------------------------------
-if [[ -z "$OTU_TABLE_FILE" ]] && [[ -z "$TAX_TABLE_FILE" ]]; then
-    echo "Error: --tax-table is required when using --otu-table"
-    echo "Usage: virofrac.sh --otu-table [file] --tax-table [file] --[tree option]"
-    exit 1
-fi
+#if [[ -z "$OTU_TABLE_FILE" ]] && [[ -z "$TAX_TABLE_FILE" ]]; then
+#    echo "Error: --tax-table is required when using --otu-table"
+#    echo "Usage: virofrac.sh --otu-table [file] --tax-table [file] --[tree option]"
+#    exit 1
+#fi
+# Chequear condición
 
 if [[ -z "$OTU_TABLE_FILE" ]] && [[ -z "$TAX_TABLE_FILE" ]]; then
     echo "Warning: --tax-table provided but --otu-table not selected"
@@ -508,10 +509,10 @@ fi
 # Handling file extensions in FASTA_FILE
 if [[ -n "$FASTA_FILE" ]]; then
     case "$FASTA_FILE" in
-        *.fastq|*.fq|*.fastq.gz|*.fq.gz)
+        *.fastq|*.fq|*.fastq.gz|*.fq.gz|*.fasta|*.fna)
             ;;
         *)
-            echo "Error: Reads file doesn't have expected extension"
+            echo "Error: Fasta file doesn't have expected extension"
             echo "Expected: .fastq, .fq, .fasta, .fa, or .gz compressed versions" # Pretty sure it is just .fastq or .fq, but we haven't reached this stage yet.
             echo "Got: $FASTA_FILE"
             exit 1
@@ -552,18 +553,18 @@ echo "Checking if files are correctly formatted..."
 #     PYTHON -  VALIDATION
 # --------------------------------------
 python3 -m src.file_validation --otu-table "$OTU_TABLE_FILE" || exit 1
-python3 -m src.file_validation --tax-table "$TAX_TABLE_FILE" || exit 1
 
-if [[ -f $FASTA_FILE ]]; then
-    python3 -m src.file_validation --reads "$FASTA_FILE" || exit 1
+if [[ -n "$TAX_TABLE_FILE" ]]; then
+    python3 -m src.file_validation --tax-table "$TAX_TABLE_FILE" || exit 1
 fi
 
-if [[ $TREE_TYPE == 'phylogenetic' ]]; then
+if [[ -n "$FASTA_FILE" ]]; then
+    python3 -m src.file_validation --fasta "$FASTA_FILE" || exit 1
+fi
+
+if [[ "$TREE_TYPE" == 'phylogenetic' ]] && [[ -n "$PHY_TREE_FILE" ]]; then
     python3 -m src.file_validation --phylo-tree "$PHY_TREE_FILE" || exit 1
 fi
-
-# Starts validation with workflow.
-echo "Starting with workflow..."
 
 # --------------------------------------
 #     PYTHON - WORKFLOW STARTS
@@ -571,14 +572,23 @@ echo "Starting with workflow..."
 
 PYTHON_CMD="python3 -m src.virofrac_main"
 
-# Deals with the OTU Table inpt
-if [[ -n "$OTU_TABLE_FILE" ]] && [[ -n "$TAX_TABLE_FILE" ]]; then
-    PYTHON_CMD="$PYTHON_CMD --otu-table \"$OTU_TABLE_FILE\" --tax-table \"$TAX_TABLE_FILE\""
-elif [[ -n "$FASTA_FILE" ]]; then
-    PYTHON_CMD="$PYTHON_CMD --reads \"$FASTA_FILE\""
+# Handle inputs based on tree type
+if [[ "$TREE_TYPE" == "network" ]]; then
+    # Network mode: needs OTU table and fasta
+    if [[ -n "$OTU_TABLE_FILE" ]]; then
+        PYTHON_CMD="$PYTHON_CMD --otu-table \"$OTU_TABLE_FILE\""
+    fi
+    if [[ -n "$FASTA_FILE" ]]; then
+        PYTHON_CMD="$PYTHON_CMD --fasta \"$FASTA_FILE\""
+    fi
+else
+    # Taxonomic/Phylogenetic mode: needs OTU table and tax table
+    if [[ -n "$OTU_TABLE_FILE" ]] && [[ -n "$TAX_TABLE_FILE" ]]; then
+        PYTHON_CMD="$PYTHON_CMD --otu-table \"$OTU_TABLE_FILE\" --tax-table \"$TAX_TABLE_FILE\""
+    fi
 fi
 
-# Deals with the used tree
+# Tree type
 if [[ -n "$TREE_TYPE" ]]; then
     PYTHON_CMD="$PYTHON_CMD --tree-type \"$TREE_TYPE\""
     
@@ -587,12 +597,24 @@ if [[ -n "$TREE_TYPE" ]]; then
     fi
 fi
 
-# Deals with the UniFrac type
-if [[ -n "$UNIFRAC_TYPE" ]] && [[ -n "$OTU_TABLE_FILE" ]] && [[ -n "$TAX_TABLE_FILE" ]] && [[ -n "$TREE_TYPE" ]]; then
+# UniFrac type
+if [[ -n "$UNIFRAC_TYPE" ]]; then
     PYTHON_CMD="$PYTHON_CMD --unifrac-type \"$UNIFRAC_TYPE\""
 fi
 
-# Deals with metadata and heatmap options
+# Network options
+if [[ "$TREE_NET_USED" == true ]]; then
+    if [[ -n "$NETWORK_METHOD" ]]; then
+        PYTHON_CMD="$PYTHON_CMD --network-method \"$NETWORK_METHOD\""
+    fi
+    
+    if [[ "$ANI_USED" == true ]]; then
+        PYTHON_CMD="$PYTHON_CMD --threshold \"$NETWORK_THRESHOLD\""
+        PYTHON_CMD="$PYTHON_CMD --vclust-output-dir \"$VCLUST_OUTPUT_DIR\""
+    fi
+fi
+
+# Metadata and heatmap options
 if [[ -n "$METADATA_FILE" ]]; then
     PYTHON_CMD="$PYTHON_CMD --metadata \"$METADATA_FILE\""
     
@@ -609,17 +631,8 @@ if [[ -n "$METADATA_FILE" ]]; then
     fi
 fi
 
-# Deals with network options
-if [[ "$TREE_NET_USED" == true ]]; then
-    if [[ -n "$NETWORK_METHOD" ]]; then
-        PYTHON_CMD="$PYTHON_CMD --network-method \"$NETWORK_METHOD\""
-    fi
-    
-    # Only pass threshold and vclust output dir for ANI method
-    if [[ "$ANI_USED" == true ]]; then
-        PYTHON_CMD="$PYTHON_CMD --threshold \"$NETWORK_THRESHOLD\""
-        PYTHON_CMD="$PYTHON_CMD --vclust-output-dir \"$VCLUST_OUTPUT_DIR\""
-    fi
+if [[ -n "$COLOR_GRADIENT" ]]; then
+    PYTHON_CMD="$PYTHON_CMD --color-gradient \"$COLOR_GRADIENT\""
 fi
 
 eval $PYTHON_CMD

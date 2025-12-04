@@ -1,4 +1,5 @@
 from ete3 import Tree
+import networkx as nx
 from decimal import Decimal, getcontext
 
 # Gives a precise number of decimals for the final
@@ -201,3 +202,39 @@ def get_normalized_weighted_unifrac(community_tree, lines):
         sum_all_weighted_branches.append(node.dist * (p_i + q_i))
     
     return(Decimal(sum(sum_weighted_branches)/sum(sum_all_weighted_branches)))
+
+def get_all_weights_from_edges(network, community_A, community_B):            
+    all_weights = [weight for node1, node2, weight 
+                   in network.edges(data='weight')
+                   if (community_A in network.nodes[node1]['communities'] or
+                   community_B in network.nodes[node1]['communities']) and
+                   (community_B in network.nodes[node2]['communities'] or
+                   community_B in network.nodes[node2]['communities'])]
+
+    return all_weights
+# Debería de retornar una lista [0.5, 1.2, 0.8]
+# Solo ejes de esa comparación de pares
+
+def get_monochromatic_edges(network, community_A, community_B):
+    monochromatic_edges = []
+    for node1, node2 in network.edges:
+        in_A = (community_A in network.nodes[node1]['communities'] and 
+                community_A in network.nodes[node2]['communities'])
+        in_B = (community_B in network.nodes[node1]['communities'] and 
+                community_B in network.nodes[node2]['communities'])
+        
+        if in_A != in_B:
+            monochromatic_edges.append(network[node1][node2]['weight'])
+    
+    return monochromatic_edges
+
+def get_unweighted_netunifrac(network, community_A, community_B):
+    monochromatic_edges = get_monochromatic_edges(network, community_A, community_B)
+    all_edges = get_all_weights_from_edges(network, community_A, community_B)
+    
+    sum_monochromatic_edges = sum(monochromatic_edges)
+    sum_all_edges = sum(all_edges)
+
+    unweighted_netunifrac = sum_monochromatic_edges/sum_all_edges
+
+    return unweighted_netunifrac

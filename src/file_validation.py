@@ -83,19 +83,19 @@ def get_validation_tax_table(filepath):
         #print("❌ Error validation Tax Table: {e}")
         sys.exit(1)
 
-def get_validation_reads_file(filepath):
+def get_validation_fasta_file(filepath):
     try:
         with open(filepath, 'r') as f:
             first_line = f.readline()
         
-        if first_line.startswith("@") == False:
-            raise ValueError(".fastq file is not valid")
+        if first_line.startswith(">") == False:
+            raise ValueError("fasta file is not valid, check if all assemblies are in the same file")
         
-        GlobalTimer.log("✅ Reads file validated")
+        GlobalTimer.log("✅ Fasta file validated")
         #print("✅ Reads file validated")
         
     except Exception as e:
-        GlobalTimer.log("❌ Error validation reads file: {e}")
+        GlobalTimer.log("❌ Error validation fasta file: {e}")
         #print(f"❌ Error validation reads file: {e}")
         sys.exit(1)
 
@@ -133,7 +133,7 @@ def main():
     )
     
     parser.add_argument(
-        '--reads',
+        '--fasta',
         type=str
     )
     
@@ -155,13 +155,13 @@ def main():
     if arguments.tax_table:
         get_validation_tax_table(arguments.tax_table)
     
-    if arguments.reads:
-        get_validation_reads_file(arguments.reads)
+    if arguments.fasta:
+        get_validation_fasta_file(arguments.fasta)
     
     if arguments.phylo_tree:
         get_validation_newick_file(arguments.phylo_tree)
         
-    if not any([arguments.otu_table, arguments.tax_table, arguments.reads, arguments.phylo_tree]):
+    if not any([arguments.otu_table, arguments.tax_table, arguments.fasta, arguments.phylo_tree]):
         sys.exit(1)
         
 if __name__ == "__main__":

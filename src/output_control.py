@@ -81,15 +81,43 @@ def get_frac_matrix_output(otu_df, tree, unifrac_type):
 # for the matrix output. For this, the function first
 # calculates the size of the matrix and then builds
 # the matrix based on the selected distance.
-def get_net_frac_matrix_output(otu_table, fasta_file, unifrac_type, network_method, threshold=None, vclust_output_dir=None):
-    if network_method == 'ani':
-        threshold = threshold if threshold is not None else 0.70
-        # Use vclust_output_dir for vclust operations
-        # Example: run vclust with output going to vclust_output_dir
-        pass
-    elif network_method == 'gene-sharing':
-        # gene-sharing logic with vcontact3
-        pass
+def get_net_frac_matrix_output(network, unifrac_type, count_table):
+    # Necesito el count_table para decidir las comunidades
+    sample_names = count_table.columns[1:].tolist()
+    n = len(sample_names)
+    total_pairs = n * (n - 1) // 2
+    
+    matrix = np.zeros((n, n))
+
+    # A partir del count_table, tengo que hacer iteraciones tipo pairwise
+    
+    for (i, j) in tqdm(combinations(range(n), 2), 
+                       total=total_pairs,
+                       desc=f"[{GlobalTimer.elapsed():7.2f}s] Brewing UniFrac",
+                       unit="pairs"):
+        
+        #col_i = sample_names[i]
+        #col_j = sample_names[j]
+        #sub_df = count_table[[count_table.columns[0], col_i, col_j]]
+        
+        #lines = ['\t'.join(sub_df.columns)]
+        #data_array = sub_df.values.astype(str)
+        #lines.extend(['\t'.join(row) for row in data_array])
+
+        # aquí entra frac
+        
+        if unifrac_type == 'normalized weighted unifrac':
+            distance = frac.get_unweighted_netunifrac(network, i, j)
+        elif unifrac_type == 'unnormalized weighted unifrac':
+            distance = frac.get_unweighted_netunifrac(network, i, j)
+        else:
+            distance = frac.get_unweighted_netunifrac(network, i, j)
+        
+        # Esas interacciones se van guardando y producen la matriz, que es la que se retorna
+        matrix[i, j] = distance
+        matrix[j, i] = distance
+
+    return pd.DataFrame(matrix, index=sample_names, columns=sample_names)
 
 # This function saves the matrix in a tab delimited file
 # that should be available after the run of this pipeline.
