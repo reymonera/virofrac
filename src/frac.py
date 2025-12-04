@@ -231,7 +231,7 @@ def get_monochromatic_edges(network, community_A, community_B):
 def get_unweighted_netunifrac(network, community_A, community_B):
     monochromatic_edges = get_monochromatic_edges(network, community_A, community_B)
     all_edges = get_all_weights_from_edges(network, community_A, community_B)
-    
+
     sum_monochromatic_edges = sum(monochromatic_edges)
     sum_all_edges = sum(all_edges)
 

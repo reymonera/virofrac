@@ -83,7 +83,8 @@ def get_frac_matrix_output(otu_df, tree, unifrac_type):
 # the matrix based on the selected distance.
 def get_net_frac_matrix_output(network, unifrac_type, count_table):
     # Necesito el count_table para decidir las comunidades
-    sample_names = count_table.columns[1:].tolist()
+    #sample_names = count_table.columns[1:].tolist()
+    sample_names = count_table.columns.tolist()  # Already indexed, so columns are samples
     n = len(sample_names)
     total_pairs = n * (n - 1) // 2
     
@@ -104,14 +105,17 @@ def get_net_frac_matrix_output(network, unifrac_type, count_table):
         #data_array = sub_df.values.astype(str)
         #lines.extend(['\t'.join(row) for row in data_array])
 
+        sample_i = sample_names[i]  # Get actual sample name
+        sample_j = sample_names[j]
+
         # aquí entra frac
         
         if unifrac_type == 'normalized weighted unifrac':
-            distance = frac.get_unweighted_netunifrac(network, i, j)
+            distance = frac.get_unweighted_netunifrac(network, sample_i, sample_j)
         elif unifrac_type == 'unnormalized weighted unifrac':
-            distance = frac.get_unweighted_netunifrac(network, i, j)
+            distance = frac.get_unweighted_netunifrac(network, sample_i, sample_j)
         else:
-            distance = frac.get_unweighted_netunifrac(network, i, j)
+            distance = frac.get_unweighted_netunifrac(network, sample_i, sample_j)
         
         # Esas interacciones se van guardando y producen la matriz, que es la que se retorna
         matrix[i, j] = distance

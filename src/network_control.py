@@ -101,29 +101,69 @@ def get_network(matrix):
 
     return network
 
-def get_network_with_threshold(threshold, matrix):
-    network = get_network(matrix)
-    threshold_network = network.remove_edges_from([(n1, n2) for n1, n2, 
-                               weight in network.edges(data="weight") 
-                               if weight < threshold])
+def get_network_with_threshold(threshold, matrix, idx_to_seq):
+    network = get_network(matrix, idx_to_seq)
+    # remove_edges_from modifies in place, returns None
+    network.remove_edges_from([
+        (n1, n2) for n1, n2, weight in network.edges(data="weight") 
+        if weight < threshold
+    ])
+    return network
+
+## CHECK
+def get_network_from_edges(edges_df, threshold):
+    """
+    Build network directly from vclust edge list.
+    Nodes will be sequence IDs automatically.
+    """
+    query_col = 'query'
+    target_col = 'reference'
+    ani_col = 'tani'
     
-    return threshold_network
+    network = nx.Graph()
+    
+    # Add edges with ANI >= threshold
+    for _, row in edges_df.iterrows():
+        ani_value = float(row[ani_col])
+        if ani_value >= threshold:
+            network.add_edge(row[query_col], row[target_col], weight=ani_value)
+    
+    # Add self-loops with weight 1.0 (optional)
+    for node in network.nodes():
+        network.nodes[node]['self_ani'] = 1.0
+    
+    return network
 
 def set_community_atribute_on_nodes(network, count_table):
-    #count_table = get_count_table(count_table_path)
+    # Ensure OTU IDs are the index
+    if count_table.index.dtype == 'int64':
+        count_table = count_table.set_index(count_table.columns[0])
     
-    for node in count_table.index:
-        row = count_table.loc[node]
-        communities = row[row > 0].to_dict() # Diccionario de comunidades y cantidades
-        network.nodes[node]['communities'] = communities 
-        # Ahora G.nodes[0]['comunidades'] = {'comunidad_A': 5, 'comunidad_B': 2}
+    # Iterate over NETWORK nodes, not count_table
+    for node in network.nodes():
+        if node in count_table.index:
+            row = count_table.loc[node]
+            communities = row[row > 0].to_dict()
+            network.nodes[node]['communities'] = communities
+        else:
+            # Node exists in network but not in count_table
+            network.nodes[node]['communities'] = {}
     
     return network
 
 def get_input_ani_network(input_fasta, output_dir, threshold, count_table):
-    matrix = get_ani_matrix_vclust(input_fasta, output_dir)
-    pruned_network = get_network_with_threshold(threshold, matrix)
-    input_network = set_community_atribute_on_nodes(pruned_network, count_table)
+    get_ani_matrix_vclust(input_fasta, output_dir)
+    #pruned_network = get_network_with_threshold(threshold, matrix)
+
+    edges_df = pd.read_csv(f'{output_dir}/ani.tsv', sep='\t')
+    
+    # Build network directly with threshold applied
+    network = get_network_from_edges(edges_df, threshold)
+    
+    # Add community attributes
+    input_network = set_community_atribute_on_nodes(network, count_table)
+
+    #input_network = set_community_atribute_on_nodes(pruned_network, count_table)
 
     return input_network
 
