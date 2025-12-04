@@ -1,4 +1,5 @@
 import src.frac as frac
+from src.utils import GlobalTimer
 from itertools import combinations
 import pandas as pd
 import numpy as np
@@ -9,7 +10,6 @@ from scipy.spatial.distance import squareform
 from tqdm import tqdm
 from matplotlib.patches import Patch
 from matplotlib.colors import LinearSegmentedColormap
-from src.utils import GlobalTimer
 
 # This function manages the partial OTU tables that will
 # be used as an input when compairing each pair.
@@ -66,16 +66,30 @@ def get_frac_matrix_output(otu_df, tree, unifrac_type):
         lines.extend(['\t'.join(row) for row in data_array])
         
         if unifrac_type == 'normalized weighted unifrac':
-            distance = frac.getNormalizedWeightedUniFrac(tree, lines)
+            distance = frac.get_normalized_weighted_unifrac(tree, lines)
         elif unifrac_type == 'unnormalized weighted unifrac':
-            distance = frac.getUnnormalizedWeightedUniFrac(tree, lines)
+            distance = frac.get_unnormalized_weighted_unifrac(tree, lines)
         else:
-            distance = frac.getUnweightedUnifrac(tree, lines)
+            distance = frac.get_unweighted_unifrac(tree, lines)
         
         matrix[i, j] = distance
         matrix[j, i] = distance
     
     return pd.DataFrame(matrix, index=sample_names, columns=sample_names)
+
+# This function is managing the comparisons necessary
+# for the matrix output. For this, the function first
+# calculates the size of the matrix and then builds
+# the matrix based on the selected distance.
+def get_net_frac_matrix_output(otu_table, fasta_file, unifrac_type, network_method, threshold=None, vclust_output_dir=None):
+    if network_method == 'ani':
+        threshold = threshold if threshold is not None else 0.70
+        # Use vclust_output_dir for vclust operations
+        # Example: run vclust with output going to vclust_output_dir
+        pass
+    elif network_method == 'gene-sharing':
+        # gene-sharing logic with vcontact3
+        pass
 
 # This function saves the matrix in a tab delimited file
 # that should be available after the run of this pipeline.
@@ -96,20 +110,24 @@ def get_color_gradient_for_heatmap(color_gradient):
     if not color_gradient:
         #print("Using default colormap gradient: 'coolwarm'")
         GlobalTimer.log("Using default colormap gradient: 'coolwarm'")
+
         return 'coolwarm'
     
     if ',' in color_gradient:
         colors = [c.strip() for c in color_gradient.split(',')]
+
         return LinearSegmentedColormap.from_list('custom', colors)
     
     if isinstance(color_gradient, str):
         if color_gradient.startswith('#'):
             #print('Color pair not specified, using white in the custom gradiet...')
             GlobalTimer.log("Color pair not specified, using white in the custom gradiet...")
+
             return LinearSegmentedColormap.from_list('custom', ['#FFFFFF', color_gradient])
         else:
             #print(f"Using predefined colormap: '{color_gradient}'")
             GlobalTimer.log("Using predefined colormap")
+
             return color_gradient
     
 

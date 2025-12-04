@@ -35,6 +35,7 @@ if [[ $# -eq 0 ]]; then
     echo "  -nt, --network                          Selects network option"
     echo "  --ani                                   Selects ANI based network option (works wth vclust)"
     echo "  --gene-sharing                          Selects gene-sharing based network option (works wth vcontact3)"
+    echo "  --threshold [value]                     Selects a threshold (XXX!!!!!) for the network-based clustering. Default: 0.70"
     echo ""
     echo "Metadata/Plot options:"
     echo "  -m, --metadata [file]                   A metadata file used for the final heatmap plot. If not used, it will output a default plot. [.tsv|.csv|.tab|.tabular]"
@@ -49,7 +50,6 @@ fi
 # Tree multiple flags detection
 TREE_TAX_USED=false
 TREE_PHY_USED=false
-TREE_NET_USED=false
 
 # UniFrac flags detection
 UNIFRAC_UU_USED=false
@@ -60,8 +60,16 @@ UNIFRAC_NW_USED=false
 LEGEND_COLUMNS=()
 COLOR_COLUMNS=()
 
+# Network flags detection
+TREE_NET_USED=false
+ANI_USED=false
+GENE_SHARING_USED=false
+NETWORK_THRESHOLD="0.70"
+VCLUST_OUTPUT_DIR=""
+
 while [[ $# -gt 0 ]]; do
     case "$1" in
+        # Input flags
         -o|--otu-table)
             if [[ -z "${2:-}" ]]; then
                 echo "Error: -o/--otu-table requires an OTU table"
@@ -101,11 +109,7 @@ while [[ $# -gt 0 ]]; do
             TREE_TYPE="phylogenetic"
             shift 2
             ;;
-        -nt|--network)
-            TREE_NET_USED=true
-            TREE_TYPE="network"
-            shift
-            ;;
+        # UniFrac/Distance metrics flags
         -uu|--unweighted-unifrac)
             UNIFRAC_UU_USED=true
             UNIFRAC_TYPE="unweighted unifrac"
@@ -121,6 +125,31 @@ while [[ $# -gt 0 ]]; do
             UNIFRAC_TYPE="normalized weighted unifrac"
             shift
             ;;
+        # Network flags
+        -nt|--network)
+            TREE_NET_USED=true
+            TREE_TYPE="network"
+            shift
+            ;;
+        --ani)
+            ANI_USED=true
+            NETWORK_METHOD="ani"
+            shift
+            ;;
+        --gene-sharing)
+            GENE_SHARING_USED=true
+            NETWORK_METHOD="gene-sharing"
+            shift
+            ;;
+        --threshold)
+            if [[ -z "${2:-}" ]]; then
+                echo "Error: --threshold requires a numeric value"
+                exit 1
+            fi
+            NETWORK_THRESHOLD="$2"
+            shift 2
+            ;;
+        # Metadata - Plot Output flags
         -m|--metadata)
             METADATA_FILE="$2"
             shift 2
@@ -178,6 +207,7 @@ while [[ $# -gt 0 ]]; do
                 echo "  -nt, --network                          Selects network option"
                 echo "  --ani                                   Selects ANI based network option (works wth vclust)"
                 echo "  --gene-sharing                          Selects gene-sharing based network option (works wth vcontact3)"
+                echo "  --threshold [value]                     Selects a threshold (XXX!!!!!) for the network-based clustering. Default: 0.70"
                 echo ""
                 echo "Metadata/Plot options:"
                 echo "  -m, --metadata [file]                   A metadata file used for the final heatmap plot. If not used, it will output a default plot. [.tsv|.csv|.tab|.tabular]"
@@ -326,6 +356,86 @@ fi
 # --------------------------------------
 #           NETWORK OPTIONS
 # --------------------------------------
+# If network mode is selected, a network method must be chosen
+if [[ "$TREE_NET_USED" == true ]]; then
+    NETWORK_METHODS=0
+    [[ "$ANI_USED" == true ]] && ((NETWORK_METHODS++))
+    [[ "$GENE_SHARING_USED" == true ]] && ((NETWORK_METHODS++))
+    
+    if [[ $NETWORK_METHODS -eq 0 ]]; then
+        echo "Error: --network requires a network method"
+        echo ""
+        echo "Choose one:"
+        echo "  • --ani (ANI-based clustering with vclust)"
+        echo "  • --gene-sharing (gene-sharing based clustering with vcontact3)"
+        exit 1
+    fi
+    
+    if [[ $NETWORK_METHODS -gt 1 ]]; then
+        echo "Error: Only one network method can be selected"
+        echo ""
+        echo "You used multiple network methods:"
+        [[ "$ANI_USED" == true ]] && echo "  • --ani"
+        [[ "$GENE_SHARING_USED" == true ]] && echo "  • --gene-sharing"
+        echo ""
+        echo "Please select only ONE network method."
+        exit 1
+    fi
+    
+    echo "Using network threshold: $NETWORK_THRESHOLD"
+fi
+
+# Threshold only makes sense with network mode
+if [[ "$NETWORK_THRESHOLD" != "0.70" ]] && [[ "$TREE_NET_USED" != true ]]; then
+    echo "Error: --threshold requires -nt/--network"
+    echo "Usage: -nt --ani --threshold [value]"
+    exit 1
+fi
+
+# Validate threshold is a valid number between 0 and 1
+if ! [[ "$NETWORK_THRESHOLD" =~ ^[0-1]?\.?[0-9]+$ ]]; then
+    echo "Error: --threshold must be a number between 0 and 1"
+    echo "Got: $NETWORK_THRESHOLD"
+    exit 1
+fi
+
+# Additional range check using bc
+if (( $(echo "$NETWORK_THRESHOLD < 0 || $NETWORK_THRESHOLD > 1" | bc -l) )); then
+    echo "Error: --threshold must be between 0 and 1"
+    echo "Got: $NETWORK_THRESHOLD"
+    exit 1
+fi
+
+# ANI and gene-sharing shouldn't be used without network flag
+if [[ "$ANI_USED" == true || "$GENE_SHARING_USED" == true ]] && [[ "$TREE_NET_USED" != true ]]; then
+    echo "Error: --ani and --gene-sharing require -nt/--network"
+    exit 1
+fi
+
+# Threshold only applies to ANI method
+if [[ "$NETWORK_THRESHOLD" != "0.70" ]] && [[ "$GENE_SHARING_USED" == true ]]; then
+    echo "Warning: --threshold is ignored with --gene-sharing method"
+    echo "         Threshold only applies to --ani method"
+fi
+
+# Create vclust output directory if using ANI network method
+if [[ "$ANI_USED" == true ]]; then
+    VCLUST_OUTPUT_DIR="$(pwd)/vclust_output"
+    
+    if [[ -d "$VCLUST_OUTPUT_DIR" ]]; then
+        echo "Warning: vclust output directory already exists. Cleaning up..."
+        rm -rf "$VCLUST_OUTPUT_DIR"
+    fi
+    
+    mkdir -p "$VCLUST_OUTPUT_DIR"
+    
+    if [[ ! -d "$VCLUST_OUTPUT_DIR" ]]; then
+        echo "Error: Failed to create vclust output directory"
+        exit 1
+    fi
+    
+    echo "Created vclust output directory: $VCLUST_OUTPUT_DIR"
+fi
 
 # --------------------------------------
 #            MISSING FILES
@@ -499,8 +609,17 @@ if [[ -n "$METADATA_FILE" ]]; then
     fi
 fi
 
-if [[ -n "$COLOR_GRADIENT" ]]; then
-        PYTHON_CMD="$PYTHON_CMD --color-gradient \"$COLOR_GRADIENT\""
+# Deals with network options
+if [[ "$TREE_NET_USED" == true ]]; then
+    if [[ -n "$NETWORK_METHOD" ]]; then
+        PYTHON_CMD="$PYTHON_CMD --network-method \"$NETWORK_METHOD\""
     fi
+    
+    # Only pass threshold and vclust output dir for ANI method
+    if [[ "$ANI_USED" == true ]]; then
+        PYTHON_CMD="$PYTHON_CMD --threshold \"$NETWORK_THRESHOLD\""
+        PYTHON_CMD="$PYTHON_CMD --vclust-output-dir \"$VCLUST_OUTPUT_DIR\""
+    fi
+fi
 
 eval $PYTHON_CMD

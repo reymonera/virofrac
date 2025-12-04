@@ -9,7 +9,7 @@ getcontext().prec = 20
 # table that is included in the input files. Mainly
 # it works by determining community assignment per
 # taxa. It ignores the header.
-def getProcessedOTUTable(lines):
+def get_processed_otu_table(lines):
     taxon_communities = {}
     header = None
     
@@ -37,8 +37,8 @@ def getProcessedOTUTable(lines):
 # case, it refers to the community feature. The output
 # is a tree with leaves and the featured community
 # they belong to.
-def putCommunityFeatureOnTree(tree, lines):
-    taxon_communities = getProcessedOTUTable(lines)
+def put_community_feature_on_tree(tree, lines):
+    taxon_communities = get_processed_otu_table(lines)
     
     for leaf in tree.iter_leaves():
         if leaf.name in taxon_communities:
@@ -50,7 +50,7 @@ def putCommunityFeatureOnTree(tree, lines):
 # It generates a Python list that will be filled with
 # the lengths of said unique branches. This function
 # is not considering the root of the tree.
-def getUniqueBranches(tree):
+def get_unique_branches(tree):
     unique_branches = []
     community_list = []
 
@@ -70,8 +70,8 @@ def getUniqueBranches(tree):
 # getSumUniqueBranchLengths just sums all the 
 # unique lengths that were in the previous
 # created list.
-def getSumUniqueBranchLengths(tree):
-    unique_branches = getUniqueBranches(tree)
+def get_sum_unique_branch_lengths(tree):
+    unique_branches = get_unique_branches(tree)
     unique_lengths = []
     for node in unique_branches:
         unique_lengths.append(node.dist)
@@ -79,7 +79,7 @@ def getSumUniqueBranchLengths(tree):
 
 # getSumAllBranchLengths just sums all the lengths.
 # This function does not consider the root.
-def getSumAllBranchLengths(tree):
+def get_sum_all_branch_lengths(tree):
     all_lengths = []
 
     for node in tree.traverse():
@@ -92,7 +92,7 @@ def getSumAllBranchLengths(tree):
 # getCommunityDictionaries is a function that will
 # create dictionaries for the communities that are
 # being compared with each other.
-def getCommunityDictionaries(lines):
+def get_community_dictionaries(lines):
     first_community = {}
     second_community = {}
     community_dictionaries = []
@@ -114,9 +114,9 @@ def getCommunityDictionaries(lines):
 # getCommunityProportionsDictionaries is a function
 # that is assigning relative proportions per taxa 
 # in each community. 
-def getCommunityProportionsDictionaries(lines):
+def get_community_proportions_dictionaries(lines):
     communities_proportions = []
-    community_dictionaries = getCommunityDictionaries(lines)
+    community_dictionaries = get_community_dictionaries(lines)
 
     first_community = community_dictionaries[0]
     second_community = community_dictionaries[1]
@@ -134,21 +134,21 @@ def getCommunityProportionsDictionaries(lines):
 
 # This function outputs the Unweighted Unifrac value
 # between 2 communities.
-def getUnweightedUnifrac(community_tree, lines):
-    tree = putCommunityFeatureOnTree(community_tree, lines)
+def get_unweighted_unifrac(community_tree, lines):
+    tree = put_community_feature_on_tree(community_tree, lines)
 
-    sum_unique_branches = Decimal(getSumUniqueBranchLengths(tree))
-    sum_all_branches = Decimal(getSumAllBranchLengths(tree))
+    sum_unique_branches = Decimal(get_sum_unique_branch_lengths(tree))
+    sum_all_branches = Decimal(get_sum_all_branch_lengths(tree))
 
     return sum_unique_branches/sum_all_branches
 
 # This function outputs the Normalized Weighted Unifrac 
 # value between 2 communities.
-def getUnnormalizedWeightedUniFrac(community_tree, lines):
-    tree = putCommunityFeatureOnTree(community_tree, lines)
+def get_unnormalized_weighted_unifrac(community_tree, lines):
+    tree = put_community_feature_on_tree(community_tree, lines)
 
-    first_community = getCommunityProportionsDictionaries(lines)[0]
-    second_community = getCommunityProportionsDictionaries(lines)[1]
+    first_community = get_community_proportions_dictionaries(lines)[0]
+    second_community = get_community_proportions_dictionaries(lines)[1]
 
     sum_weighted_branches = []
     
@@ -173,11 +173,11 @@ def getUnnormalizedWeightedUniFrac(community_tree, lines):
 
 # This function outputs the Normalized Weighted Unifrac 
 # value between 2 communities.
-def getNormalizedWeightedUniFrac(community_tree, lines):
-    tree = putCommunityFeatureOnTree(community_tree, lines)
+def get_normalized_weighted_unifrac(community_tree, lines):
+    tree = put_community_feature_on_tree(community_tree, lines)
 
-    first_community = getCommunityProportionsDictionaries(lines)[0]
-    second_community = getCommunityProportionsDictionaries(lines)[1]
+    first_community = get_community_proportions_dictionaries(lines)[0]
+    second_community = get_community_proportions_dictionaries(lines)[1]
 
     sum_weighted_branches = []
     sum_all_weighted_branches = []

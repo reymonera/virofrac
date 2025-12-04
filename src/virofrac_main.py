@@ -40,6 +40,25 @@ def parse_arguments():
         type=str
     )
 
+    # Network options
+    parser.add_argument(
+        '--network-method',
+        type=str,
+        choices=['ani', 'gene-sharing'],
+        required=False
+    )
+    parser.add_argument(
+        '--threshold',
+        type=float,
+        default=0.70,
+        required=False
+    )
+    parser.add_argument(
+        '--vclust-output-dir',
+        type=Path,
+        required=False
+    )
+
     # Manage metadata file and its options
     parser.add_argument(
         '--metadata', 
@@ -66,7 +85,7 @@ def parse_arguments():
 
 def get_input_otu_table():
     args = parse_arguments()
-    input_otu = pd.read_csv(args.otu_table, sep=None, engine='python')
+    input_otu = pd.read_csv(args.otu_tablesharing, sep=None, engine='python')
 
     #print("✅ OTU Table correctly loaded")
     GlobalTimer.log("✅ OTU Table correctly loaded")
@@ -116,12 +135,34 @@ def main():
     otu_table =  get_input_otu_table()
     
     if args.tree_type.strip() == 'phylogenetic' or args.tree_type.strip() == 'taxonomic':
+        GlobalTimer.log("Implementing the tree option...")
         otu_tree = get_input_otu_tree()
+        matrix = oc.get_frac_matrix_output(otu_table, otu_tree, args.unifrac_type)
 
-    if args.tree_type.strip() == 'network':
+    elif args.tree_type.strip() == 'network':
+        if not args.network_method:
+            raise ValueError("Network tree type requires --network-method (ani or gene-sharing)")
+        GlobalTimer.log("Implementing the network option...")
+
         fasta_file = get_input_fasta_file()
 
-    matrix = oc.get_frac_matrix_output(otu_table, otu_tree, args.unifrac_type)
+        if args.network_method == 'ani':
+            matrix = oc.get_net_frac_matrix_output(
+                otu_table, 
+                fasta_file, 
+                args.unifrac_type,
+                args.network_method,
+                args.threshold,
+                args.vclust_output_dir
+            )
+        elif args.network_method == 'gene-sharing':
+            matrix = oc.get_net_frac_matrix_output(
+                otu_table, 
+                fasta_file, 
+                args.unifrac_type,
+                args.network_method
+            )
+
     oc.get_heatmap_output(
         matrix, 
         otu_table, 
