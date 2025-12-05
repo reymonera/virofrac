@@ -84,6 +84,9 @@ def get_frac_matrix_output(otu_df, tree, unifrac_type):
 def get_net_frac_matrix_output(network, unifrac_type, count_table):
     # Necesito el count_table para decidir las comunidades
     #sample_names = count_table.columns[1:].tolist()
+
+    count_table = count_table.set_index(count_table.columns[0])
+
     sample_names = count_table.columns.tolist()  # Already indexed, so columns are samples
     n = len(sample_names)
     total_pairs = n * (n - 1) // 2

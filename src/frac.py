@@ -203,38 +203,72 @@ def get_normalized_weighted_unifrac(community_tree, lines):
     
     return(Decimal(sum(sum_weighted_branches)/sum(sum_all_weighted_branches)))
 
-def get_all_weights_from_edges(network, community_A, community_B):            
-    all_weights = [weight for node1, node2, weight 
-                   in network.edges(data='weight')
-                   if (community_A in network.nodes[node1]['communities'] or
-                   community_B in network.nodes[node1]['communities']) and
-                   (community_B in network.nodes[node2]['communities'] or
-                   community_B in network.nodes[node2]['communities'])]
+def get_distances_from_edges(edge_list):
+    distance_list = [1 - x for x in edge_list]
+    return distance_list
 
+def get_all_weights_from_edges(network, community_A, community_B):            
+    all_weights = []
+    for node1, node2, weight in network.edges(data='weight'):
+        n1_in_A = community_A in network.nodes[node1]['communities']
+        n1_in_B = community_B in network.nodes[node1]['communities']
+        n2_in_A = community_A in network.nodes[node2]['communities']
+        n2_in_B = community_B in network.nodes[node2]['communities']
+        
+        # Edge is relevant if BOTH nodes belong to at least one of the communities
+        if (n1_in_A or n1_in_B) and (n2_in_A or n2_in_B):
+            all_weights.append(weight)
+    
     return all_weights
 # Debería de retornar una lista [0.5, 1.2, 0.8]
 # Solo ejes de esa comparación de pares
 
 def get_monochromatic_edges(network, community_A, community_B):
-    monochromatic_edges = []
-    for node1, node2 in network.edges:
-        in_A = (community_A in network.nodes[node1]['communities'] and 
-                community_A in network.nodes[node2]['communities'])
-        in_B = (community_B in network.nodes[node1]['communities'] and 
-                community_B in network.nodes[node2]['communities'])
+    monochromatic_weights = []
+    for node1, node2, weight in network.edges(data='weight'):
+        n1_in_A = community_A in network.nodes[node1]['communities']
+        n1_in_B = community_B in network.nodes[node1]['communities']
+        n2_in_A = community_A in network.nodes[node2]['communities']
+        n2_in_B = community_B in network.nodes[node2]['communities']
         
-        if in_A != in_B:
-            monochromatic_edges.append(network[node1][node2]['weight'])
+        # First: Edge must be relevant (same filter as all_edges)
+        if not ((n1_in_A or n1_in_B) and (n2_in_A or n2_in_B)):
+            continue
+        
+        # Second: Check if monochromatic
+        # Both nodes in A only (neither in B)
+        both_A_only = (n1_in_A and n2_in_A and not n1_in_B and not n2_in_B)
+        # Both nodes in B only (neither in A)
+        both_B_only = (n1_in_B and n2_in_B and not n1_in_A and not n2_in_A)
+        
+        if both_A_only or both_B_only:
+            monochromatic_weights.append(weight)
     
-    return monochromatic_edges
+    return monochromatic_weights
 
 def get_unweighted_netunifrac(network, community_A, community_B):
     monochromatic_edges = get_monochromatic_edges(network, community_A, community_B)
     all_edges = get_all_weights_from_edges(network, community_A, community_B)
 
-    sum_monochromatic_edges = sum(monochromatic_edges)
-    sum_all_edges = sum(all_edges)
+    monochromatic_distances = get_distances_from_edges(monochromatic_edges)
+    all_distances = get_distances_from_edges(all_edges)
 
-    unweighted_netunifrac = sum_monochromatic_edges/sum_all_edges
+    sum_monochromatic_distances = sum(monochromatic_distances)
+    sum_all_distances = sum(all_distances)
+
+    print("DEBUG: Compairing: ", community_A, " vs. ", community_B)
+    print(f"monochromatic_edges length: {len(monochromatic_edges)}")
+    print(f"all_edges length: {len(all_edges)}")
+    print(f"Are identical: {monochromatic_edges == all_edges}")
+
+    # See first few elements
+    print(f"monochromatic_edges[:5]: {monochromatic_edges[:5]}")
+    print(f"all_edges[:5]: {all_edges[:5]}")
+
+    if sum_all_distances == 0:
+        # No shared structure = maximum distance (completely different communities)
+        return 1.0
+
+    unweighted_netunifrac = sum_monochromatic_distances/sum_all_distances
 
     return unweighted_netunifrac

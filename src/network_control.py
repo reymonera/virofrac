@@ -135,6 +135,7 @@ def get_network_from_edges(edges_df, threshold):
     return network
 
 def set_community_atribute_on_nodes(network, count_table):
+    
     # Ensure OTU IDs are the index
     if count_table.index.dtype == 'int64':
         count_table = count_table.set_index(count_table.columns[0])
@@ -148,6 +149,9 @@ def set_community_atribute_on_nodes(network, count_table):
         else:
             # Node exists in network but not in count_table
             network.nodes[node]['communities'] = {}
+    
+    print(f"DEBUG: Sample network nodes: {list(network.nodes())[:3]}")
+    print(f"DEBUG: Sample count table index: {count_table.index[:3].tolist()}")
     
     return network
 
