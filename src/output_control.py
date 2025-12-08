@@ -164,6 +164,33 @@ def get_color_gradient_for_heatmap(color_gradient):
             GlobalTimer.log("Using predefined colormap")
 
             return color_gradient
+        
+def get_plot_network_output(network):
+    """Plot the network and save to file."""
+    import matplotlib.pyplot as plt
+    import networkx as nx
+    
+    plt.figure(figsize=(12, 12))
+    
+    # Use spring layout for better visualization
+    pos = nx.spring_layout(network, k=0.5, iterations=50, seed=42)
+    
+    # Get edge weights for coloring
+    edges = network.edges(data=True)
+    weights = [d.get('weight', 1.0) for _, _, d in edges]
+    
+    # Draw
+    nx.draw_networkx_nodes(network, pos, node_size=20, node_color='steelblue', alpha=0.8)
+    nx.draw_networkx_edges(network, pos, width=0.5, alpha=0.5, 
+                           edge_color=weights, edge_cmap=plt.cm.coolwarm)
+    
+    plt.title(f"ANI Network ({network.number_of_nodes()} nodes, {network.number_of_edges()} edges)")
+    plt.axis('off')
+    plt.tight_layout()
+    plt.savefig("virofrac_network_plot.png", dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    print(f"Network plot saved to: virofrac_network_plot.png")
     
 
 # This function controls the heatmap output. There are two 

@@ -156,6 +156,8 @@ def main():
         network = get_input_network()
         matrix = oc.get_net_frac_matrix_output(network, args.unifrac_type, otu_table)
 
+        #oc.get_plot_network_output(network)
+
     oc.get_heatmap_output(
         matrix, 
         otu_table, 
