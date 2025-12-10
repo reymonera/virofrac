@@ -12,10 +12,8 @@ def get_count_table(count_table_path):
     return indexed_count_table
 
 ##CHECK
+# Convert vclust edge list output to a square adjacency matrix.
 def set_edge_list_to_matrix(edges_df):
-    """
-    Convert vclust edge list output to a square adjacency matrix.
-    """
     # Detect query column
     if 'query' in edges_df.columns:
         query_col = 'query'
@@ -111,11 +109,9 @@ def get_network_with_threshold(threshold, matrix, idx_to_seq):
     return network
 
 ## CHECK
+# Build network directly from vclust edge list.
+# Nodes will be sequence IDs automatically.
 def get_network_from_edges(edges_df, threshold):
-    """
-    Build network directly from vclust edge list.
-    Nodes will be sequence IDs automatically.
-    """
     query_col = 'query'
     target_col = 'reference'
     ani_col = 'tani'
@@ -170,5 +166,3 @@ def get_input_ani_network(input_fasta, output_dir, threshold, count_table):
     #input_network = set_community_atribute_on_nodes(pruned_network, count_table)
 
     return input_network
-
-

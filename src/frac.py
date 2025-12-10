@@ -6,6 +6,10 @@ from decimal import Decimal, getcontext
 # result. 20 digits of precision are determined.
 getcontext().prec = 20
 
+####################################################
+#           PHYLOGENETIC - BASED
+####################################################
+
 # This function processes the lines from the OTU
 # table that is included in the input files. Mainly
 # it works by determining community assignment per
@@ -203,6 +207,9 @@ def get_normalized_weighted_unifrac(community_tree, lines):
     
     return(Decimal(sum(sum_weighted_branches)/sum(sum_all_weighted_branches)))
 
+####################################################
+#              NETWORK - BASED
+####################################################
 def get_distances_from_edges(edge_list):
     distance_list = [1 - x for x in edge_list]
     return distance_list
@@ -241,6 +248,7 @@ def get_monochromatic_edges(network, community_A, community_B):
         # Both nodes in B only (neither in A)
         both_B_only = (n1_in_B and n2_in_B and not n1_in_A and not n2_in_A)
         
+        #if (n1_in_A and n2_in_A) or (n1_in_B and n2_in_B):
         if both_A_only or both_B_only:
             monochromatic_weights.append(weight)
     
@@ -269,6 +277,7 @@ def get_unweighted_netunifrac(network, community_A, community_B):
         # No shared structure = maximum distance (completely different communities)
         return 1.0
 
-    unweighted_netunifrac = sum_monochromatic_distances/sum_all_distances
+    #unweighted_netunifrac = sum_monochromatic_distances/sum_all_distances
+    unweighted_netunifrac = len(monochromatic_distances)/len(all_distances)
 
     return unweighted_netunifrac
