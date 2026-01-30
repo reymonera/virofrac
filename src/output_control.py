@@ -164,7 +164,8 @@ def get_color_gradient_for_heatmap(color_gradient):
             GlobalTimer.log("Using predefined colormap")
 
             return color_gradient
-        
+
+# ESTA FUNCIÓN ESTÁ DE RESIDUO PERO PUEDE QUE FUNCIONE
 def get_plot_network_output(network):
     """Plot the network and save to file."""
     import matplotlib.pyplot as plt

@@ -7,7 +7,7 @@ from decimal import Decimal, getcontext
 getcontext().prec = 20
 
 ####################################################
-#           PHYLOGENETIC - BASED
+#           PHYLOGENETIC - BASED                   #
 ####################################################
 
 # This function processes the lines from the OTU
@@ -230,6 +230,21 @@ def get_all_weights_from_edges(network, community_A, community_B):
 # Debería de retornar una lista [0.5, 1.2, 0.8]
 # Solo ejes de esa comparación de pares
 
+# Get volume for any imput community, which is always the first one
+def get_volume_of_sample_A(network, community_A, community_B):            
+    edge_weights_of_sample_A = []
+    for node1, node2, weight in network.edges(data='weight'):
+        n1_in_A = community_A in network.nodes[node1]['communities']
+        n1_in_B = community_B in network.nodes[node1]['communities']
+        n2_in_A = community_A in network.nodes[node2]['communities']
+        n2_in_B = community_B in network.nodes[node2]['communities']
+        
+        # Edge is relevant if BOTH nodes belong to at least one of the communities
+        if (n1_in_A or n2_in_A) and (n1_in_A or n1_in_B) and (n2_in_A or n2_in_B):
+            edge_weights_of_sample_A.append(weight)
+    
+    return sum(edge_weights_of_sample_A)
+
 def get_monochromatic_edges(network, community_A, community_B):
     monochromatic_weights = []
     for node1, node2, weight in network.edges(data='weight'):
@@ -254,6 +269,30 @@ def get_monochromatic_edges(network, community_A, community_B):
     
     return monochromatic_weights
 
+def get_bichromatic_edges(network, community_A, community_B):
+    bichromatic_weights = []
+    for node1, node2, weight in network.edges(data='weight'):
+        n1_in_A = community_A in network.nodes[node1]['communities']
+        n1_in_B = community_B in network.nodes[node1]['communities']
+        n2_in_A = community_A in network.nodes[node2]['communities']
+        n2_in_B = community_B in network.nodes[node2]['communities']
+        
+        # First: Edge must be relevant (same filter as all_edges)
+        if not ((n1_in_A or n1_in_B) and (n2_in_A or n2_in_B)):
+            continue
+        
+        # Second: Check if bichromatic
+        # Both nodes in A only (neither in B)
+        both_A_only = (n1_in_A and n2_in_A and not n1_in_B and not n2_in_B)
+        # Both nodes in B only (neither in A)
+        both_B_only = (n1_in_B and n2_in_B and not n1_in_A and not n2_in_A)
+        
+        #if (n1_in_A and n2_in_A) or (n1_in_B and n2_in_B):
+        if both_A_only or both_B_only:
+            bichromatic_weights.append(weight)
+    
+    return bichromatic_weights
+
 def get_unweighted_netunifrac(network, community_A, community_B):
     monochromatic_edges = get_monochromatic_edges(network, community_A, community_B)
     all_edges = get_all_weights_from_edges(network, community_A, community_B)
@@ -277,7 +316,7 @@ def get_unweighted_netunifrac(network, community_A, community_B):
         # No shared structure = maximum distance (completely different communities)
         return 1.0
 
-    #unweighted_netunifrac = sum_monochromatic_distances/sum_all_distances
-    unweighted_netunifrac = len(monochromatic_distances)/len(all_distances)
+    unweighted_netunifrac = sum_monochromatic_distances/sum_all_distances
+    #unweighted_netunifrac = len(monochromatic_distances)/len(all_distances)
 
     return unweighted_netunifrac
