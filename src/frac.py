@@ -214,6 +214,10 @@ def get_distances_from_edges(edge_list):
     distance_list = [1 - x for x in edge_list]
     return distance_list
 
+def get_similarities_from_edges(edge_list):
+    similarity_list = [x for x in edge_list]
+    return similarity_list
+
 def get_all_weights_from_edges(network, community_A, community_B):            
     all_weights = []
     for node1, node2, weight in network.edges(data='weight'):
@@ -231,7 +235,7 @@ def get_all_weights_from_edges(network, community_A, community_B):
 # Solo ejes de esa comparación de pares
 
 # Get volume for any imput community, which is always the first one
-def get_volume_of_sample_A(network, community_A, community_B):            
+def get_volume_of_first_sample(network, community_A, community_B):            
     edge_weights_of_sample_A = []
     for node1, node2, weight in network.edges(data='weight'):
         n1_in_A = community_A in network.nodes[node1]['communities']
@@ -239,8 +243,12 @@ def get_volume_of_sample_A(network, community_A, community_B):
         n2_in_A = community_A in network.nodes[node2]['communities']
         n2_in_B = community_B in network.nodes[node2]['communities']
         
-        # Edge is relevant if BOTH nodes belong to at least one of the communities
-        if (n1_in_A or n2_in_A) and (n1_in_A or n1_in_B) and (n2_in_A or n2_in_B):
+        # Edge must be relevant (both nodes belong to at least one community)
+        if not ((n1_in_A or n1_in_B) and (n2_in_A or n2_in_B)):
+            continue
+        
+        # Volume of A = edges where at least one node belongs to A
+        if n1_in_A or n2_in_A:
             edge_weights_of_sample_A.append(weight)
     
     return sum(edge_weights_of_sample_A)
@@ -281,14 +289,7 @@ def get_bichromatic_edges(network, community_A, community_B):
         if not ((n1_in_A or n1_in_B) and (n2_in_A or n2_in_B)):
             continue
         
-        # Second: Check if bichromatic
-        # Both nodes in A only (neither in B)
-        both_A_only = (n1_in_A and n2_in_A and not n1_in_B and not n2_in_B)
-        # Both nodes in B only (neither in A)
-        both_B_only = (n1_in_B and n2_in_B and not n1_in_A and not n2_in_A)
-        
-        #if (n1_in_A and n2_in_A) or (n1_in_B and n2_in_B):
-        if both_A_only or both_B_only:
+        if n1_in_A != n2_in_A or n1_in_B != n2_in_B:
             bichromatic_weights.append(weight)
     
     return bichromatic_weights
@@ -297,6 +298,14 @@ def get_unweighted_netunifrac(network, community_A, community_B):
     monochromatic_edges = get_monochromatic_edges(network, community_A, community_B)
     all_edges = get_all_weights_from_edges(network, community_A, community_B)
 
+    # Temporal?
+    bichromatic_edges = get_bichromatic_edges(network, community_A, community_B)
+    volume_of_sample_A = get_volume_of_first_sample(network, community_A, community_B)
+    volume_of_sample_B = get_volume_of_first_sample(network, community_B, community_A)
+
+    sum_bichromatic_similarities = sum(bichromatic_edges)
+    # Temporal?
+
     monochromatic_distances = get_distances_from_edges(monochromatic_edges)
     all_distances = get_distances_from_edges(all_edges)
 
@@ -304,19 +313,20 @@ def get_unweighted_netunifrac(network, community_A, community_B):
     sum_all_distances = sum(all_distances)
 
     print("DEBUG: Compairing: ", community_A, " vs. ", community_B)
-    print(f"monochromatic_edges length: {len(monochromatic_edges)}")
-    print(f"all_edges length: {len(all_edges)}")
-    print(f"Are identical: {monochromatic_edges == all_edges}")
+    print(f"bichromatic_edges length: {len(bichromatic_edges)}")
+    print(f"volume_of_sample_A length: {volume_of_sample_A}")
+    print(f"Are identical: {bichromatic_edges == volume_of_sample_A}")
 
     # See first few elements
-    print(f"monochromatic_edges[:5]: {monochromatic_edges[:5]}")
-    print(f"all_edges[:5]: {all_edges[:5]}")
+    print(f"bichromatic_edges sum: {sum_bichromatic_similarities}")
+    print(f"volume_of_sample_A: {volume_of_sample_A}")
 
     if sum_all_distances == 0:
         # No shared structure = maximum distance (completely different communities)
         return 1.0
 
-    unweighted_netunifrac = sum_monochromatic_distances/sum_all_distances
+    #unweighted_netunifrac = sum_monochromatic_distances/sum_all_distances
     #unweighted_netunifrac = len(monochromatic_distances)/len(all_distances)
+    unweighted_netunifrac = 1-((sum_bichromatic_similarities / volume_of_sample_A + sum_bichromatic_similarities / volume_of_sample_B)*0.5)
 
     return unweighted_netunifrac
