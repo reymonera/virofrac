@@ -294,25 +294,60 @@ def get_bichromatic_edges(network, community_A, community_B):
     
     return bichromatic_weights
 
-def get_weighted_netunifrac(network, community_A, community_B):            
+def get_total_for_first_community(network, community_A, community_B):
+    node_abundances = {}
+    
     for node1, node2 in network.edges():
         n1_in_A = community_A in network.nodes[node1]['communities']
         n1_in_B = community_B in network.nodes[node1]['communities']
         n2_in_A = community_A in network.nodes[node2]['communities']
         n2_in_B = community_B in network.nodes[node2]['communities']
+        
+        if not ((n1_in_A or n1_in_B) and (n2_in_A or n2_in_B)):
+            continue
+        
+        node_abundances[node1] = network.nodes[node1]['communities'].get(community_A, 0)
+        node_abundances[node2] = network.nodes[node2]['communities'].get(community_A, 0)
+    
+    return sum(node_abundances.values())
+
+def get_weighted_netunifrac(network, community_A, community_B):
+    list_num = []
+    list_dem = []
+
+    total_community_A = get_total_for_first_community(network, community_A, community_B)
+    total_community_B = get_total_for_first_community(network, community_B, community_A)
+
+    for node1, node2, weight in network.edges(data='weight'):
+        n1_in_A = community_A in network.nodes[node1]['communities']
+        n1_in_B = community_B in network.nodes[node1]['communities']
+        n2_in_A = community_A in network.nodes[node2]['communities']
+        n2_in_B = community_B in network.nodes[node2]['communities']
+
+        node1_A = network.nodes[node1]['communities'].get(community_A, 0)
+        node1_B = network.nodes[node1]['communities'].get(community_B, 0)
+        node2_A = network.nodes[node2]['communities'].get(community_A, 0)
+        node2_B = network.nodes[node2]['communities'].get(community_B, 0)
 
         if not ((n1_in_A or n1_in_B) and (n2_in_A or n2_in_B)):
             continue
-    
+
     # Go through all distances
     # Multiply them by the proportions of node wieghts
-    # Save this on a list
-    # Go through all he otherdistances
-    # Multiply them by the normalization
-    # Save this on anther list
+        if total_community_A == 0 or total_community_B == 0:
+            continue
+        else:
+            num = (1 - weight)*abs((node1_A + node2_A)/total_community_A - (node1_B + node2_B)/total_community_B)
+            dem = (1 - weight)*abs((node1_A + node2_A)/total_community_A + (node1_B + node2_B)/total_community_B)
+        # Save this on a list
+            list_num.append(num)
+            list_dem.append(dem)
     # Return the division
-        
-    return 0
+    # Handle empty lists
+    if sum(list_dem) == 0:
+        return 1
+    else:
+        return sum(list_num) / sum(list_dem)
 
 def get_unweighted_netunifrac(network, community_A, community_B):
     monochromatic_edges = get_monochromatic_edges(network, community_A, community_B)
@@ -332,14 +367,14 @@ def get_unweighted_netunifrac(network, community_A, community_B):
     sum_monochromatic_distances = sum(monochromatic_distances)
     sum_all_distances = sum(all_distances)
 
-    print("DEBUG: Compairing: ", community_A, " vs. ", community_B)
-    print(f"bichromatic_edges length: {len(bichromatic_edges)}")
-    print(f"volume_of_sample_A length: {volume_of_sample_A}")
-    print(f"Are identical: {bichromatic_edges == volume_of_sample_A}")
+    #print("DEBUG: Compairing: ", community_A, " vs. ", community_B)
+    #print(f"bichromatic_edges length: {len(bichromatic_edges)}")
+    #print(f"volume_of_sample_A length: {volume_of_sample_A}")
+    #print(f"Are identical: {bichromatic_edges == volume_of_sample_A}")
 
     # See first few elements
-    print(f"bichromatic_edges sum: {sum_bichromatic_similarities}")
-    print(f"volume_of_sample_A: {volume_of_sample_A}")
+    #print(f"bichromatic_edges sum: {sum_bichromatic_similarities}")
+    #print(f"volume_of_sample_A: {volume_of_sample_A}")
 
     if sum_all_distances == 0:
         # No shared structure = maximum distance (completely different communities)
@@ -350,6 +385,9 @@ def get_unweighted_netunifrac(network, community_A, community_B):
     #unweighted_netunifrac = len(monochromatic_distances)/len(all_distances)
 
     # Spectral clustering
-    unweighted_netunifrac = 1-((sum_bichromatic_similarities / volume_of_sample_A + sum_bichromatic_similarities / volume_of_sample_B)*0.5)
+    #unweighted_netunifrac = 1-((sum_bichromatic_similarities / volume_of_sample_A + sum_bichromatic_similarities / volume_of_sample_B)*0.5)
+
+    # Weighted NetUniFrac
+    unweighted_netunifrac = get_weighted_netunifrac(network, community_A, community_B)
 
     return unweighted_netunifrac
