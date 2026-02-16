@@ -14,6 +14,8 @@ Builds a hierarchical tree based on the ICTV taxonomy. For this, the tool uses a
 
 #### Network
 
+Builds a similarity network between contigs. Networks can be built using vClust (v. ) and vConTACT (v. ).
+
 #### Custom tree
 
 ### Output
@@ -43,6 +45,9 @@ A heatmap is the graphical output provided by ViroFrac. The heatmap function use
 ## Installation
 
 ## Usage
+```
+bash virofrac.sh --fasta uhgv/subset_votus_renamed.fna --otu-table uhgv/subset_count_votus.tsv --network --ani --threshold 0 -uu -m uhgv/country_metadata.tsv -l continent -c color_continent -g viridis
+```
 
 ## Documentation
 
