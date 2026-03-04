@@ -22,14 +22,14 @@ def get_validation_otu_table(filepath):
         df = pd.read_csv(filepath, sep=separator)
         otu_col = None
         
-        otu_col_candidates = ['#OTU ID', 'OTU ID', 'OTU_ID', '#OTU_ID', 'OTUID', 'otu_id']
-        for candidate in otu_col_candidates:
-            if candidate in df.columns:
-                otu_col = candidate
-                break
+        #otu_col_candidates = ['#OTU ID', 'OTU ID', 'OTU_ID', '#OTU_ID', 'OTUID', 'otu_id']
+        #for candidate in otu_col_candidates:
+        #    if candidate in df.columns:
+        #        otu_col = candidate
+        #        break
         
-        if otu_col is None:
-            raise ValueError(f"OTU table missing OTU ID column. Expected one of: {otu_col_candidates}")
+        #if otu_col is None:
+        #    raise ValueError(f"OTU table missing OTU ID column. Expected one of: {otu_col_candidates}")
 
         sample_cols = [col for col in df.columns if col != otu_col]
         if len(sample_cols) <= 1:
@@ -40,7 +40,7 @@ def get_validation_otu_table(filepath):
         #print("✅ OTU table validated")
     
     except Exception as e:
-        GlobalTimer.log("❌ Error validation OTU Table: {e}")
+        GlobalTimer.log(f"❌ Error validation OTU Table: {e}")
         #print("❌ Error validation OTU Table: {e}")
         sys.exit(1)
 

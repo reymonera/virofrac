@@ -311,6 +311,53 @@ def get_total_for_first_community(network, community_A, community_B):
     
     return sum(node_abundances.values())
 
+def get_unweighted_netunifrac(network, community_A, community_B):
+    monochromatic_edges = get_monochromatic_edges(network, community_A, community_B)
+    all_edges = get_all_weights_from_edges(network, community_A, community_B)
+
+    # Temporal?
+    #bichromatic_edges = get_bichromatic_edges(network, community_A, community_B)
+    #volume_of_sample_A = get_volume_of_first_sample(network, community_A, community_B)
+    #volume_of_sample_B = get_volume_of_first_sample(network, community_B, community_A)
+
+    #sum_bichromatic_similarities = sum(bichromatic_edges)
+    # Temporal?
+
+    monochromatic_distances = get_distances_from_edges(monochromatic_edges)
+    all_distances = get_distances_from_edges(all_edges)
+
+    sum_monochromatic_distances = sum(monochromatic_distances)
+    sum_all_distances = sum(all_distances)
+
+    #print("DEBUG: Compairing: ", community_A, " vs. ", community_B)
+    #print(f"bichromatic_edges length: {len(bichromatic_edges)}")
+    #print(f"volume_of_sample_A length: {volume_of_sample_A}")
+    #print(f"Are identical: {bichromatic_edges == volume_of_sample_A}")
+
+    # See first few elements
+    #print(f"bichromatic_edges sum: {sum_bichromatic_similarities}")
+    #print(f"volume_of_sample_A: {volume_of_sample_A}")
+
+    if sum_all_distances == 0:
+        # No shared structure = maximum distance (completely different communities)
+        return 1.0
+
+    # NetUniFrac
+    unweighted_netunifrac = sum_monochromatic_distances/sum_all_distances
+    unweighted_netunifrac = len(monochromatic_distances)/len(all_distances)
+
+    # Weighted NetUniFrac
+    #unweighted_netunifrac = get_weighted_netunifrac(network, community_A, community_B)
+
+    # Spectral clustering
+    #if volume_of_sample_A == 0 or volume_of_sample_B == 0:
+        # Si alguna muestra no tiene edges, asumimos máxima separación
+    #    return 1.0
+    #else:
+    #    unweighted_netunifrac = 1-((sum_bichromatic_similarities / volume_of_sample_A + sum_bichromatic_similarities / volume_of_sample_B)*0.5)
+
+    return unweighted_netunifrac
+
 def get_weighted_netunifrac(network, community_A, community_B):
     list_num = []
     list_dem = []
@@ -345,49 +392,27 @@ def get_weighted_netunifrac(network, community_A, community_B):
     # Return the division
     # Handle empty lists
     if sum(list_dem) == 0:
-        return 1
+        weighted_netunifrac = 1
     else:
-        return sum(list_num) / sum(list_dem)
+        weighted_netunifrac = sum(list_num) / sum(list_dem)
+    
+    return weighted_netunifrac
+    
+def get_based_spectral_clustering(network, community_A, community_B):
+    #monochromatic_edges = get_monochromatic_edges(network, community_A, community_B)
+    #all_edges = get_all_weights_from_edges(network, community_A, community_B)
 
-def get_unweighted_netunifrac(network, community_A, community_B):
-    monochromatic_edges = get_monochromatic_edges(network, community_A, community_B)
-    all_edges = get_all_weights_from_edges(network, community_A, community_B)
-
-    # Temporal?
     bichromatic_edges = get_bichromatic_edges(network, community_A, community_B)
     volume_of_sample_A = get_volume_of_first_sample(network, community_A, community_B)
     volume_of_sample_B = get_volume_of_first_sample(network, community_B, community_A)
 
     sum_bichromatic_similarities = sum(bichromatic_edges)
-    # Temporal?
-
-    monochromatic_distances = get_distances_from_edges(monochromatic_edges)
-    all_distances = get_distances_from_edges(all_edges)
-
-    sum_monochromatic_distances = sum(monochromatic_distances)
-    sum_all_distances = sum(all_distances)
-
-    #print("DEBUG: Compairing: ", community_A, " vs. ", community_B)
-    #print(f"bichromatic_edges length: {len(bichromatic_edges)}")
-    #print(f"volume_of_sample_A length: {volume_of_sample_A}")
-    #print(f"Are identical: {bichromatic_edges == volume_of_sample_A}")
-
-    # See first few elements
-    #print(f"bichromatic_edges sum: {sum_bichromatic_similarities}")
-    #print(f"volume_of_sample_A: {volume_of_sample_A}")
-
-    if sum_all_distances == 0:
-        # No shared structure = maximum distance (completely different communities)
-        return 1.0
-
-    # NetUniFrac
-    #unweighted_netunifrac = sum_monochromatic_distances/sum_all_distances
-    #unweighted_netunifrac = len(monochromatic_distances)/len(all_distances)
 
     # Spectral clustering
-    #unweighted_netunifrac = 1-((sum_bichromatic_similarities / volume_of_sample_A + sum_bichromatic_similarities / volume_of_sample_B)*0.5)
-
-    # Weighted NetUniFrac
-    unweighted_netunifrac = get_weighted_netunifrac(network, community_A, community_B)
-
-    return unweighted_netunifrac
+    if volume_of_sample_A == 0 or volume_of_sample_B == 0:
+        # Si alguna muestra no tiene edges, asumimos máxima separación
+        based_spectral_clustering = 1.0
+    else:
+        based_spectral_clustering = 1-((sum_bichromatic_similarities / volume_of_sample_A + sum_bichromatic_similarities / volume_of_sample_B)*0.5)
+    
+    return based_spectral_clustering

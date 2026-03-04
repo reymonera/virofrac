@@ -38,7 +38,7 @@ def set_edge_list_to_matrix(edges_df):
     else:
         raise ValueError(f"Could not find ANI column. Available: {edges_df.columns.tolist()}")
 
-    print(f"DEBUG: Using columns - query: {query_col}, target: {target_col}, ani: {ani_col}")
+    #print(f"DEBUG: Using columns - query: {query_col}, target: {target_col}, ani: {ani_col}")
 
     # Get all unique sequence IDs
     all_seqs = pd.unique(edges_df[[query_col, target_col]].values.ravel())
@@ -57,7 +57,7 @@ def set_edge_list_to_matrix(edges_df):
 
     np.fill_diagonal(matrix, 1.0)
     
-    print(f"DEBUG: Adjacency matrix shape = {matrix.shape}")
+    #print(f"DEBUG: Adjacency matrix shape = {matrix.shape}")
     
     return matrix
 
@@ -146,8 +146,8 @@ def set_community_atribute_on_nodes(network, count_table):
             # Node exists in network but not in count_table
             network.nodes[node]['communities'] = {}
     
-    print(f"DEBUG: Sample network nodes: {list(network.nodes())[:3]}")
-    print(f"DEBUG: Sample count table index: {count_table.index[:3].tolist()}")
+    #print(f"DEBUG: Sample network nodes: {list(network.nodes())[:3]}")
+    #print(f"DEBUG: Sample count table index: {count_table.index[:3].tolist()}")
     
     return network
 
