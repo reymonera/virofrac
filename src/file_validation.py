@@ -36,12 +36,11 @@ def get_validation_otu_table(filepath):
             raise ValueError("OTU table has no sample columns")
         
         df = pd.read_csv(filepath, sep=separator)
-        GlobalTimer.log("✅ OTU table validated")
-        #print("✅ OTU table validated")
+        GlobalTimer.log("✓ OTU table validated")
+        #print("✓ OTU table validated")
     
     except Exception as e:
-        GlobalTimer.log(f"❌ Error validation OTU Table: {e}")
-        #print("❌ Error validation OTU Table: {e}")
+        GlobalTimer.log(f"✕ Error validation OTU Table: {e}")
         sys.exit(1)
 
 def get_validation_tax_table(filepath):
@@ -75,12 +74,12 @@ def get_validation_tax_table(filepath):
             raise ValueError("Tax table has no taxonomic columns")
         
         df = pd.read_csv(filepath, sep=separator)
-        GlobalTimer.log("✅ Tax table validated")
-        #print("✅ Tax table validated")
+        GlobalTimer.log("✓ Tax table validated")
+        #print("✓ Tax table validated")
     
     except Exception as e:
-        GlobalTimer.log("❌ Error validation Tax Table: {e}")
-        #print("❌ Error validation Tax Table: {e}")
+        GlobalTimer.log("✕ Error validation Tax Table: {e}")
+        #print("✕ Error validation Tax Table: {e}")
         sys.exit(1)
 
 def get_validation_fasta_file(filepath):
@@ -91,12 +90,12 @@ def get_validation_fasta_file(filepath):
         if first_line.startswith(">") == False:
             raise ValueError("fasta file is not valid, check if all assemblies are in the same file")
         
-        GlobalTimer.log("✅ Fasta file validated")
-        #print("✅ Reads file validated")
+        GlobalTimer.log("✓ Fasta file validated")
+        #print("✓ Reads file validated")
         
     except Exception as e:
-        GlobalTimer.log("❌ Error validation fasta file: {e}")
-        #print(f"❌ Error validation reads file: {e}")
+        GlobalTimer.log("✕ Error validation fasta file: {e}")
+        #print(f"✕ Error validation reads file: {e}")
         sys.exit(1)
 
 def get_validation_newick_file(filepath):
@@ -115,12 +114,12 @@ def get_validation_newick_file(filepath):
                 f"Unbalanced parentheses: {open_parens} '(' vs {close_parens} ')'"
             )
         
-        GlobalTimer.log("✅ Newick file validated")
-        #print("✅ Newick file validated")
+        GlobalTimer.log("✓ Newick file validated")
+        #print("✓ Newick file validated")
         
     except Exception as e:
-        GlobalTimer.log("❌ Error validation newick file: {e}")
-        #print(f"❌ Error validation newick file: {e}")
+        GlobalTimer.log("✕ Error validation newick file: {e}")
+        #print(f"✕ Error validation newick file: {e}")
         sys.exit(1)
 
 def main():

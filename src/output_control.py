@@ -45,7 +45,7 @@ def get_input_otu_lines(partial_otu_tables):
 # for the matrix output. For this, the function first
 # calculates the size of the matrix and then builds
 # the matrix based on the selected distance.
-def get_frac_matrix_output(otu_df, tree, distance-type):
+def get_frac_matrix_output(otu_df, tree, distance_type):
     sample_names = otu_df.columns[1:].tolist()
     n = len(sample_names)
     total_pairs = n * (n - 1) // 2
@@ -65,9 +65,9 @@ def get_frac_matrix_output(otu_df, tree, distance-type):
         data_array = sub_df.values.astype(str)
         lines.extend(['\t'.join(row) for row in data_array])
         
-        if distance-type == 'normalized weighted unifrac':
+        if distance_type == 'normalized weighted unifrac':
             distance = frac.get_normalized_weighted_unifrac(tree, lines)
-        elif distance-type == 'unnormalized weighted unifrac':
+        elif distance_type == 'unnormalized weighted unifrac':
             distance = frac.get_unnormalized_weighted_unifrac(tree, lines)
         else:
             distance = frac.get_unweighted_unifrac(tree, lines)
@@ -81,7 +81,7 @@ def get_frac_matrix_output(otu_df, tree, distance-type):
 # for the matrix output. For this, the function first
 # calculates the size of the matrix and then builds
 # the matrix based on the selected distance.
-def get_net_frac_matrix_output(network, distance-type, count_table):
+def get_net_frac_matrix_output(network, distance_type, count_table):
     # Necesito el count_table para decidir las comunidades
     #sample_names = count_table.columns[1:].tolist()
 
@@ -99,24 +99,14 @@ def get_net_frac_matrix_output(network, distance-type, count_table):
                        total=total_pairs,
                        desc=f"[{GlobalTimer.elapsed():7.2f}s] Brewing UniFrac",
                        unit="pairs"):
-        
-        #col_i = sample_names[i]
-        #col_j = sample_names[j]
-        #sub_df = count_table[[count_table.columns[0], col_i, col_j]]
-        
-        #lines = ['\t'.join(sub_df.columns)]
-        #data_array = sub_df.values.astype(str)
-        #lines.extend(['\t'.join(row) for row in data_array])
 
         sample_i = sample_names[i]  # Get actual sample name
         sample_j = sample_names[j]
-
-        # aquí entra frac
         
-        if distance-type == 'normalized weighted unifrac':
-            distance = frac.get_unweighted_netunifrac(network, sample_i, sample_j)
-        elif distance-type == 'unnormalized weighted unifrac':
-            distance = frac.get_unweighted_netunifrac(network, sample_i, sample_j)
+        if distance_type == 'normalized weighted unifrac':
+            distance = frac.get_weighted_netunifrac(network, sample_i, sample_j)
+        elif distance_type == 'spectral clustering':
+            distance = frac.get_based_spectral_clustering(network, sample_i, sample_j)
         else:
             distance = frac.get_unweighted_netunifrac(network, sample_i, sample_j)
         
@@ -132,7 +122,8 @@ def get_dataframe_from_matrix(matrix, otu_df):
     sample_names = otu_df.columns[1:].tolist()
     matrix_as_df = pd.DataFrame(matrix, index=sample_names, columns=sample_names)
 
-    GlobalTimer.log("Saving matrix as a dataframe...")
+    GlobalTimer.log("Saving matrix as a dataframe...")        #elif distance_type == 'spectral clustering':
+        #    distance = 0
 
     matrix_as_df.to_csv('matrix_as_dataframe.tsv', sep='\t')
 
@@ -198,7 +189,7 @@ def get_plot_network_output(network):
 # options: When there is no metadata input and when there 
 # is metadata input. A legend and a color column needs to 
 # be specified for a correct labelling.
-def get_heatmap_output(matrix, otu_df, distance-type, color_gradient, metadata_file=None, legend_columns=None, color_columns=None):
+def get_heatmap_output(matrix, otu_df, distance_type, color_gradient, metadata_file=None, legend_columns=None, color_columns=None):
     gradient = get_color_gradient_for_heatmap(color_gradient)
     matrix_df = get_dataframe_from_matrix(matrix, otu_df)
     dist_condensed = squareform(matrix)
@@ -231,18 +222,18 @@ def get_heatmap_output(matrix, otu_df, distance-type, color_gradient, metadata_f
         g.ax_heatmap.set_xlabel('Samples', fontsize=12)
         g.ax_heatmap.set_ylabel('Samples', fontsize=12)
         g.figure.suptitle(
-            f'{(distance-type).title()} Distance Matrix with Hierarchical Clustering',
+            f'{(distance_type).title()} Distance Matrix with Hierarchical Clustering',
             fontsize=14,
             x=0.45,
             y=0.96
         )
         
         plt.savefig('virofrac_heatmap.png', dpi=300, bbox_inches='tight')
-        GlobalTimer.log("✅ Heatmap ready! Showing the final plot...")
-        #print("✅ Heatmap ready! Showing the final plot...")
+        GlobalTimer.log("✓ Heatmap ready! Showing the final plot...")
+        #print("✓ Heatmap ready! Showing the final plot...")
         plt.show()
-        GlobalTimer.log("✅ Heatmap ready! Showing the final plot...")
-        #print(f"✅ Heatmap saved in virofrac_heatmap.png")
+        GlobalTimer.log("✓ Heatmap ready! Showing the final plot...")
+        #print(f"✓ Heatmap saved in virofrac_heatmap.png")
         return g
     
     with open(metadata_file, 'r') as f:
@@ -309,7 +300,7 @@ def get_heatmap_output(matrix, otu_df, distance-type, color_gradient, metadata_f
     if len(colors_combined.columns) == 0:
         GlobalTimer.log("⚠️ No valid columns, generating simple heatmap")
         #print("⚠️ No valid columns, generating simple heatmap")
-        return get_heatmap_output(matrix, otu_df, distance-type, None, None, None)
+        return get_heatmap_output(matrix, otu_df, distance_type, None, None, None)
 
     g = sns.clustermap(
         matrix,
@@ -371,7 +362,7 @@ def get_heatmap_output(matrix, otu_df, distance-type, color_gradient, metadata_f
     
     g.figure.subplots_adjust(top=0.93) 
     g.figure.suptitle(
-        f'{(distance-type).title()} Distance Matrix with Hierarchical Clustering',
+        f'{(distance_type).title()} Distance Matrix with Hierarchical Clustering',
         fontsize=14,
         x=0.45,
         y=0.96
@@ -381,11 +372,11 @@ def get_heatmap_output(matrix, otu_df, distance-type, color_gradient, metadata_f
     plt.savefig('virofrac_heatmap.png', dpi=300, bbox_inches='tight')
     plt.savefig('virofrac_heatmap.svg', format='svg', bbox_inches='tight')
 
-    GlobalTimer.log("✅ Heatmap ready! Showing the final plot...")
-    #print("✅ Heatmap ready! Showing the final plot...")
+    GlobalTimer.log("✓ Heatmap ready! Showing the final plot...")
+    #print("✓ Heatmap ready! Showing the final plot...")
     plt.show()
-    GlobalTimer.log("✅ Heatmap saved in virofrac_heatmap.png")
-    #print("✅ Heatmap saved in virofrac_heatmap.png")
+    GlobalTimer.log("✓ Heatmap saved in virofrac_heatmap.png")
+    #print("✓ Heatmap saved in virofrac_heatmap.png")
     
     return g
 

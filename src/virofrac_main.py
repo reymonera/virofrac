@@ -87,8 +87,8 @@ def get_input_otu_table():
     args = parse_arguments()
     input_otu = pd.read_csv(args.otu_table, sep=None, engine='python')
 
-    #print("✅ OTU Table correctly loaded")
-    GlobalTimer.log("✅ OTU Table correctly loaded")
+    #print("✓ OTU Table correctly loaded")
+    GlobalTimer.log("✓ OTU Table correctly loaded")
 
     return input_otu
 
@@ -100,8 +100,8 @@ def get_input_tax_table():
     
     input_tax = input_tax.replace(r'^\s*$', pd.NA, regex=True)
 
-    #print("✅ Taxonomic Table correctly loaded")
-    GlobalTimer.log("✅ Taxonomic Table correctly loaded")
+    #print("✓ Taxonomic Table correctly loaded")
+    GlobalTimer.log("✓ Taxonomic Table correctly loaded")
 
     return input_tax
 
@@ -113,8 +113,8 @@ def get_input_otu_tree():
         otu_tax = get_input_tax_table()
         input_tree = treetr.get_otu_tree(otu_tax)
     
-    #print("✅ Tree correctly loaded")
-    GlobalTimer.log("✅ Tree correctly loaded")
+    #print("✓ Tree correctly loaded")
+    GlobalTimer.log("✓ Tree correctly loaded")
 
     return input_tree
 
@@ -126,7 +126,7 @@ def get_input_network():
     threshold = args.threshold
     network_method = args.network_method
     
-    GlobalTimer.log("✅ Fasta file correctly loaded")
+    GlobalTimer.log("✓ Fasta file correctly loaded")
     
     if network_method == 'ani':
         input_network = nc.get_input_ani_network(fasta_file, output_dir, threshold, count_otu_table)
@@ -146,7 +146,7 @@ def main():
     if args.tree_type.strip() == 'phylogenetic' or args.tree_type.strip() == 'taxonomic':
         GlobalTimer.log("Implementing the tree option...")
         otu_tree = get_input_otu_tree()
-        matrix = oc.get_frac_matrix_output(otu_table, otu_tree, args.distance-type)
+        matrix = oc.get_frac_matrix_output(otu_table, otu_tree, args.distance_type)
 
     elif args.tree_type.strip() == 'network':
         if not args.network_method:
@@ -154,14 +154,14 @@ def main():
         GlobalTimer.log("Implementing the network option...")
         
         network = get_input_network()
-        matrix = oc.get_net_frac_matrix_output(network, args.distance-type, otu_table)
+        matrix = oc.get_net_frac_matrix_output(network, args.distance_type, otu_table)
 
         #oc.get_plot_network_output(network)
 
     oc.get_heatmap_output(
         matrix, 
         otu_table, 
-        args.distance-type,
+        args.distance_type,
         args.color_gradient,
         args.metadata,
         args.legend_column,

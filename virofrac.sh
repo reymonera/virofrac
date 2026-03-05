@@ -312,6 +312,7 @@ UNIFRAC_OPTIONS=0
 [[ "$UNIFRAC_UU_USED" == true ]] && ((UNIFRAC_OPTIONS++))
 [[ "$UNIFRAC_UW_USED" == true ]] && ((UNIFRAC_OPTIONS++))
 [[ "$UNIFRAC_NW_USED" == true ]] && ((UNIFRAC_OPTIONS++))
+[[ "$SPECTRAL_CLUSTERING_USED" == true ]] && ((UNIFRAC_OPTIONS++))
 
 if [[ $UNIFRAC_OPTIONS -gt 1 ]]; then
     echo "Error: Only one UniFrac type can be selected"
