@@ -45,7 +45,7 @@ def get_input_otu_lines(partial_otu_tables):
 # for the matrix output. For this, the function first
 # calculates the size of the matrix and then builds
 # the matrix based on the selected distance.
-def get_frac_matrix_output(otu_df, tree, unifrac_type):
+def get_frac_matrix_output(otu_df, tree, distance-type):
     sample_names = otu_df.columns[1:].tolist()
     n = len(sample_names)
     total_pairs = n * (n - 1) // 2
@@ -65,9 +65,9 @@ def get_frac_matrix_output(otu_df, tree, unifrac_type):
         data_array = sub_df.values.astype(str)
         lines.extend(['\t'.join(row) for row in data_array])
         
-        if unifrac_type == 'normalized weighted unifrac':
+        if distance-type == 'normalized weighted unifrac':
             distance = frac.get_normalized_weighted_unifrac(tree, lines)
-        elif unifrac_type == 'unnormalized weighted unifrac':
+        elif distance-type == 'unnormalized weighted unifrac':
             distance = frac.get_unnormalized_weighted_unifrac(tree, lines)
         else:
             distance = frac.get_unweighted_unifrac(tree, lines)
@@ -81,7 +81,7 @@ def get_frac_matrix_output(otu_df, tree, unifrac_type):
 # for the matrix output. For this, the function first
 # calculates the size of the matrix and then builds
 # the matrix based on the selected distance.
-def get_net_frac_matrix_output(network, unifrac_type, count_table):
+def get_net_frac_matrix_output(network, distance-type, count_table):
     # Necesito el count_table para decidir las comunidades
     #sample_names = count_table.columns[1:].tolist()
 
@@ -113,9 +113,9 @@ def get_net_frac_matrix_output(network, unifrac_type, count_table):
 
         # aquí entra frac
         
-        if unifrac_type == 'normalized weighted unifrac':
+        if distance-type == 'normalized weighted unifrac':
             distance = frac.get_unweighted_netunifrac(network, sample_i, sample_j)
-        elif unifrac_type == 'unnormalized weighted unifrac':
+        elif distance-type == 'unnormalized weighted unifrac':
             distance = frac.get_unweighted_netunifrac(network, sample_i, sample_j)
         else:
             distance = frac.get_unweighted_netunifrac(network, sample_i, sample_j)
@@ -198,7 +198,7 @@ def get_plot_network_output(network):
 # options: When there is no metadata input and when there 
 # is metadata input. A legend and a color column needs to 
 # be specified for a correct labelling.
-def get_heatmap_output(matrix, otu_df, unifrac_type, color_gradient, metadata_file=None, legend_columns=None, color_columns=None):
+def get_heatmap_output(matrix, otu_df, distance-type, color_gradient, metadata_file=None, legend_columns=None, color_columns=None):
     gradient = get_color_gradient_for_heatmap(color_gradient)
     matrix_df = get_dataframe_from_matrix(matrix, otu_df)
     dist_condensed = squareform(matrix)
@@ -231,7 +231,7 @@ def get_heatmap_output(matrix, otu_df, unifrac_type, color_gradient, metadata_fi
         g.ax_heatmap.set_xlabel('Samples', fontsize=12)
         g.ax_heatmap.set_ylabel('Samples', fontsize=12)
         g.figure.suptitle(
-            f'{(unifrac_type).title()} Distance Matrix with Hierarchical Clustering',
+            f'{(distance-type).title()} Distance Matrix with Hierarchical Clustering',
             fontsize=14,
             x=0.45,
             y=0.96
@@ -309,7 +309,7 @@ def get_heatmap_output(matrix, otu_df, unifrac_type, color_gradient, metadata_fi
     if len(colors_combined.columns) == 0:
         GlobalTimer.log("⚠️ No valid columns, generating simple heatmap")
         #print("⚠️ No valid columns, generating simple heatmap")
-        return get_heatmap_output(matrix, otu_df, unifrac_type, None, None, None)
+        return get_heatmap_output(matrix, otu_df, distance-type, None, None, None)
 
     g = sns.clustermap(
         matrix,
@@ -371,7 +371,7 @@ def get_heatmap_output(matrix, otu_df, unifrac_type, color_gradient, metadata_fi
     
     g.figure.subplots_adjust(top=0.93) 
     g.figure.suptitle(
-        f'{(unifrac_type).title()} Distance Matrix with Hierarchical Clustering',
+        f'{(distance-type).title()} Distance Matrix with Hierarchical Clustering',
         fontsize=14,
         x=0.45,
         y=0.96

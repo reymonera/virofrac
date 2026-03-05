@@ -36,7 +36,7 @@ def parse_arguments():
     )
 
     parser.add_argument(
-        '--unifrac-type',
+        '--distance-type',
         type=str
     )
 
@@ -146,7 +146,7 @@ def main():
     if args.tree_type.strip() == 'phylogenetic' or args.tree_type.strip() == 'taxonomic':
         GlobalTimer.log("Implementing the tree option...")
         otu_tree = get_input_otu_tree()
-        matrix = oc.get_frac_matrix_output(otu_table, otu_tree, args.unifrac_type)
+        matrix = oc.get_frac_matrix_output(otu_table, otu_tree, args.distance-type)
 
     elif args.tree_type.strip() == 'network':
         if not args.network_method:
@@ -154,14 +154,14 @@ def main():
         GlobalTimer.log("Implementing the network option...")
         
         network = get_input_network()
-        matrix = oc.get_net_frac_matrix_output(network, args.unifrac_type, otu_table)
+        matrix = oc.get_net_frac_matrix_output(network, args.distance-type, otu_table)
 
         #oc.get_plot_network_output(network)
 
     oc.get_heatmap_output(
         matrix, 
         otu_table, 
-        args.unifrac_type,
+        args.distance-type,
         args.color_gradient,
         args.metadata,
         args.legend_column,

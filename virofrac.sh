@@ -23,9 +23,9 @@ if [[ $# -eq 0 ]]; then
     echo "  -t, --tax-table [file]                  Selects taxonomic table [.tsv|.csv|.tab|.tabular]"
     echo ""
     echo "Distance options:"
-    echo "  -uu, --unweighted-unifrac               Selects the unweighted unifrac option. Paired with the network option it will perform a Weighted NetUniFrac distance."
+    echo "  -uu, --unweighted-unifrac               Selects the unweighted unifrac option. When paired with the network option it will perform a Weighted NetUniFrac distance."
     echo "  -uw, --unnormalized-weighted-unifrac    Selects the unnormalized weighted unifrac option"
-    echo "  -nw, --normalized-weighted-unifrac      Selects the normalized weighted unifrac option. Paired with the network option it will perform a Weighted NetUniFrac distance."
+    echo "  -nw, --normalized-weighted-unifrac      Selects the normalized weighted unifrac option. When paired with the network option it will perform a Weighted NetUniFrac distance."
     echo "  --based-spectral-clustering             Selects the distance based on spectral clustering (Only with Network option)"
     echo ""
     echo "Tree options:"
@@ -56,6 +56,7 @@ TREE_PHY_USED=false
 UNIFRAC_UU_USED=false
 UNIFRAC_UW_USED=false
 UNIFRAC_NW_USED=false
+SPECTRAL_CLUSTERING_USED=false
 
 # Arrays for metadata
 LEGEND_COLUMNS=()
@@ -126,6 +127,11 @@ while [[ $# -gt 0 ]]; do
             UNIFRAC_TYPE="normalized weighted unifrac"
             shift
             ;;
+        --based-spectral-clustering)
+            SPECTRAL_CLUSTERING_USED=true
+            UNIFRAC_TYPE="spectral clustering"
+            shift
+            ;;
         # Network flags
         -nt|--network)
             TREE_NET_USED=true
@@ -163,7 +169,6 @@ while [[ $# -gt 0 ]]; do
             LEGEND_COLUMNS+=("$2")
             shift 2
             ;;
-
         -c|--color-column)
             if [[ -z "${2:-}" ]]; then
                 echo "Error: -c/--color-column requires a column name"
@@ -196,9 +201,9 @@ while [[ $# -gt 0 ]]; do
                 echo "  -t, --tax-table [file]                  Selects taxonomic table [.tsv|.csv|.tab|.tabular]"
                 echo ""
                 echo "Distance options:"
-                echo "  -uu, --unweighted-unifrac               Selects the unweighted unifrac option. Paired with the network option it will perform a Weighted NetUniFrac distance."
+                echo "  -uu, --unweighted-unifrac               Selects the unweighted unifrac option. When paired with the network option it will perform a Weighted NetUniFrac distance."
                 echo "  -uw, --unnormalized-weighted-unifrac    Selects the unnormalized weighted unifrac option"
-                echo "  -nw, --normalized-weighted-unifrac      Selects the normalized weighted unifrac option. Paired with the network option it will perform a Weighted NetUniFrac distance."
+                echo "  -nw, --normalized-weighted-unifrac      Selects the normalized weighted unifrac option. When paired with the network option it will perform a Weighted NetUniFrac distance."
                 echo "  --based-spectral-clustering             Selects the distance based on spectral clustering (Only with Network option)"
                 echo ""
                 echo "Tree options:"
@@ -392,6 +397,12 @@ fi
 if [[ "$NETWORK_THRESHOLD" != "0.70" ]] && [[ "$TREE_NET_USED" != true ]]; then
     echo "Error: --threshold requires -nt/--network"
     echo "Usage: -nt --ani --threshold [value]"
+    exit 1
+fi
+
+# Spectral clustering only makes sense with network mode
+if [[ "$SPECTRAL_CLUSTERING_USED" == true ]] && [[ "$TREE_NET_USED" != true ]]; then
+    echo "Error: --based-spectral-clustering requires -nt/--network"
     exit 1
 fi
 
@@ -601,7 +612,7 @@ fi
 
 # UniFrac type
 if [[ -n "$UNIFRAC_TYPE" ]]; then
-    PYTHON_CMD="$PYTHON_CMD --unifrac-type \"$UNIFRAC_TYPE\""
+    PYTHON_CMD="$PYTHON_CMD --distance-type \"$UNIFRAC_TYPE\""
 fi
 
 # Network options
