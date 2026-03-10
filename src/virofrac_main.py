@@ -54,7 +54,7 @@ def parse_arguments():
         required=False
     )
     parser.add_argument(
-        '--vclust-output-dir',
+        '--output-dir',
         type=Path,
         required=False
     )
@@ -122,7 +122,7 @@ def get_input_network():
     args = parse_arguments()
     fasta_file = args.fasta
     count_otu_table = get_input_otu_table()
-    output_dir = args.vclust_output_dir
+    output_dir = args.output_dir
     threshold = args.threshold
     network_method = args.network_method
     
@@ -132,7 +132,8 @@ def get_input_network():
         input_network = nc.get_input_ani_network(fasta_file, output_dir, threshold, count_otu_table)
         return input_network
     elif network_method == 'gene-sharing':
-        return "LOL"
+        input_network = nc.get_gene_sharing_network_vcontact3(fasta_file, output_dir)
+        return input_network
     
 
 def main():

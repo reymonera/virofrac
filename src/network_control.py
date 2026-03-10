@@ -3,6 +3,7 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 import glob
+from src.utils import GlobalTimer
 
 # Esta función debería de acepar el network basado en ani y en gene sharing
 def get_count_table(count_table_path):
@@ -64,7 +65,7 @@ def set_edge_list_to_matrix(edges_df):
 
 def get_ani_matrix_vclust(input_fasta, output_dir):
     # Prefilter
-    print("Prefiltering sponsored by vclust...")
+    GlobalTimer.log("Prefiltering sponsored by vclust...")
     cmd_prefilter = [
         'vclust', 'prefilter',
         '-i', input_fasta,
@@ -73,7 +74,7 @@ def get_ani_matrix_vclust(input_fasta, output_dir):
     subprocess.run(cmd_prefilter, check=True)
 
     # Alignment
-    print("Alignment sponsored by vclust...")
+    GlobalTimer.log("Alignment sponsored by vclust...")
     cmd_align = [
         'vclust', 'align',
         '-i', input_fasta,
@@ -90,8 +91,8 @@ def get_ani_matrix_vclust(input_fasta, output_dir):
 # On the contrary of vClust, vConTACT3 will work better
 # producing the network instead of doing a matrix and
 # then producing the network.
-def get_network_vcontact(input_fasta, output_dir):
-    print("Building network sponsored by vConTACT3...")
+def get_gene_sharing_network_vcontact3(input_fasta, output_dir):
+    GlobalTimer.log("Building network sponsored by vConTACT3...")
     subprocess.run([
         'vcontact3', 'run',
         '--nucleotide', input_fasta,
@@ -103,10 +104,6 @@ def get_network_vcontact(input_fasta, output_dir):
     network = nx.read_graphml(network_file)
 
     return network
-
-def get_gene_sharing_matrix_vcontact():
-    matrix = 0
-    return matrix
 
 def get_network(matrix):
     #matrix = np.loadtxt(matrix_file, delimiter=",", skiprows=1)
@@ -164,23 +161,16 @@ def set_community_atribute_on_nodes(network, count_table):
             # Node exists in network but not in count_table
             network.nodes[node]['communities'] = {}
     
-    #print(f"DEBUG: Sample network nodes: {list(network.nodes())[:3]}")
-    #print(f"DEBUG: Sample count table index: {count_table.index[:3].tolist()}")
-    
     return network
 
 def get_input_ani_network(input_fasta, output_dir, threshold, count_table):
     get_ani_matrix_vclust(input_fasta, output_dir)
-    #pruned_network = get_network_with_threshold(threshold, matrix)
 
     edges_df = pd.read_csv(f'{output_dir}/ani.tsv', sep='\t')
     
-    # Build network directly with threshold applied
     network = get_network_from_edges(edges_df, threshold)
     
     # Add community attributes
     input_network = set_community_atribute_on_nodes(network, count_table)
-
-    #input_network = set_community_atribute_on_nodes(pruned_network, count_table)
 
     return input_network
