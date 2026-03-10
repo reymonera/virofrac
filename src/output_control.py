@@ -92,15 +92,13 @@ def get_net_frac_matrix_output(network, distance_type, count_table):
     total_pairs = n * (n - 1) // 2
     
     matrix = np.zeros((n, n))
-
-    # A partir del count_table, tengo que hacer iteraciones tipo pairwise
-    
+   
     for (i, j) in tqdm(combinations(range(n), 2), 
                        total=total_pairs,
                        desc=f"[{GlobalTimer.elapsed():7.2f}s] Brewing UniFrac",
                        unit="pairs"):
 
-        sample_i = sample_names[i]  # Get actual sample name
+        sample_i = sample_names[i]
         sample_j = sample_names[j]
         
         if distance_type == 'normalized weighted unifrac':
@@ -122,8 +120,7 @@ def get_dataframe_from_matrix(matrix, otu_df):
     sample_names = otu_df.columns[1:].tolist()
     matrix_as_df = pd.DataFrame(matrix, index=sample_names, columns=sample_names)
 
-    GlobalTimer.log("Saving matrix as a dataframe...")        #elif distance_type == 'spectral clustering':
-        #    distance = 0
+    GlobalTimer.log("Saving matrix as a dataframe...")
 
     matrix_as_df.to_csv('matrix_as_dataframe.tsv', sep='\t')
 
@@ -134,24 +131,19 @@ def get_dataframe_from_matrix(matrix, otu_df):
 # a custom color scale. Palettes are also available.
 def get_color_gradient_for_heatmap(color_gradient):
     if not color_gradient:
-        #print("Using default colormap gradient: 'coolwarm'")
         GlobalTimer.log("Using default colormap gradient: 'coolwarm'")
-
         return 'coolwarm'
     
     if ',' in color_gradient:
         colors = [c.strip() for c in color_gradient.split(',')]
-
         return LinearSegmentedColormap.from_list('custom', colors)
     
     if isinstance(color_gradient, str):
         if color_gradient.startswith('#'):
-            #print('Color pair not specified, using white in the custom gradiet...')
             GlobalTimer.log("Color pair not specified, using white in the custom gradiet...")
 
             return LinearSegmentedColormap.from_list('custom', ['#FFFFFF', color_gradient])
         else:
-            #print(f"Using predefined colormap: '{color_gradient}'")
             GlobalTimer.log("Using predefined colormap")
 
             return color_gradient

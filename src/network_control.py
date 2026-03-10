@@ -2,6 +2,7 @@ import subprocess
 import networkx as nx
 import numpy as np
 import pandas as pd
+import glob
 
 # Esta función debería de acepar el network basado en ani y en gene sharing
 def get_count_table(count_table_path):
@@ -85,6 +86,23 @@ def get_ani_matrix_vclust(input_fasta, output_dir):
     matrix = set_edge_list_to_matrix(edges_df)
 
     return matrix
+
+# On the contrary of vClust, vConTACT3 will work better
+# producing the network instead of doing a matrix and
+# then producing the network.
+def get_network_vcontact(input_fasta, output_dir):
+    print("Building network sponsored by vConTACT3...")
+    subprocess.run([
+        'vcontact3', 'run',
+        '--nucleotide', input_fasta,
+        '--output', output_dir,
+        '--exports', 'graphml'
+    ], check=True)
+    
+    network_file = glob.glob(f'{output_dir}/*.graphml')[0]
+    network = nx.read_graphml(network_file)
+
+    return network
 
 def get_gene_sharing_matrix_vcontact():
     matrix = 0
