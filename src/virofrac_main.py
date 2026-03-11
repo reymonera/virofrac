@@ -113,7 +113,6 @@ def get_input_otu_tree():
         otu_tax = get_input_tax_table()
         input_tree = treetr.get_otu_tree(otu_tax)
     
-    #print("✓ Tree correctly loaded")
     GlobalTimer.log("✓ Tree correctly loaded")
 
     return input_tree
@@ -137,7 +136,6 @@ def get_input_network():
     
 
 def main():
-    #print("Managing inputs...")
     GlobalTimer.log("Managing inputs...")
 
     args = parse_arguments()

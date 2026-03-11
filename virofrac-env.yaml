@@ -16,3 +16,4 @@ dependencies:
   - tqdm
   - networkx
   - vclust
+  - vcontact3

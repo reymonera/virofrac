@@ -67,7 +67,7 @@ TREE_NET_USED=false
 ANI_USED=false
 GENE_SHARING_USED=false
 NETWORK_THRESHOLD="0.70"
-VCLUST_OUTPUT_DIR=""
+OUTPUT_DIR=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -433,23 +433,23 @@ if [[ "$NETWORK_THRESHOLD" != "0.70" ]] && [[ "$GENE_SHARING_USED" == true ]]; t
     echo "         Threshold only applies to --ani method"
 fi
 
-# Create vclust output directory if using ANI network method
-if [[ "$ANI_USED" == true ]]; then
-    VCLUST_OUTPUT_DIR="$(pwd)/vclust_output"
+# Create output directory if using ANI or gene sharing network method
+if [[ "$ANI_USED" == true ]] && [[ "$GENE_SHARING_USED" == true ]]; then
+    OUTPUT_DIR="$(pwd)/vclust_output"
     
-    if [[ -d "$VCLUST_OUTPUT_DIR" ]]; then
-        echo "Warning: vclust output directory already exists. Cleaning up..."
-        rm -rf "$VCLUST_OUTPUT_DIR"
+    if [[ -d "$OUTPUT_DIR" ]]; then
+        echo "Warning: Output directory already exists. Cleaning up..."
+        rm -rf "$OUTPUT_DIR"
     fi
     
-    mkdir -p "$VCLUST_OUTPUT_DIR"
+    mkdir -p "$OUTPUT_DIR"
     
-    if [[ ! -d "$VCLUST_OUTPUT_DIR" ]]; then
-        echo "Error: Failed to create vclust output directory"
+    if [[ ! -d "$OUTPUT_DIR" ]]; then
+        echo "Error: Failed to create output directory"
         exit 1
     fi
     
-    echo "Created vclust output directory: $VCLUST_OUTPUT_DIR"
+    echo "Created output directory: $OUTPUT_DIR"
 fi
 
 # --------------------------------------
@@ -624,7 +624,12 @@ if [[ "$TREE_NET_USED" == true ]]; then
     
     if [[ "$ANI_USED" == true ]]; then
         PYTHON_CMD="$PYTHON_CMD --threshold \"$NETWORK_THRESHOLD\""
-        PYTHON_CMD="$PYTHON_CMD --vclust-output-dir \"$VCLUST_OUTPUT_DIR\""
+        PYTHON_CMD="$PYTHON_CMD --output-dir \"$OUTPUT_DIR\""
+    fi
+
+    if [[ "$GENE_SHARING_USED" == true ]]; then
+        #PYTHON_CMD="$PYTHON_CMD --threshold \"$NETWORK_THRESHOLD\""
+        PYTHON_CMD="$PYTHON_CMD --output-dir \"$OUTPUT_DIR\""
     fi
 fi
 
