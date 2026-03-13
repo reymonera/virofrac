@@ -4,6 +4,8 @@ import numpy as np
 import pandas as pd
 import glob
 from src.utils import GlobalTimer
+import shutil
+from pathlib import Path
 
 # Esta función debería de acepar el network basado en ani y en gene sharing
 def get_count_table(count_table_path):
@@ -88,25 +90,100 @@ def get_ani_matrix_vclust(input_fasta, output_dir):
 
     return matrix
 
-# On the contrary of vClust, vConTACT3 will work better
+# Contrary to vClust, vConTACT3 will work better
 # producing the network instead of doing a matrix and
 # then producing the network.
 def get_gene_sharing_network_vcontact3(input_fasta, output_dir):
     GlobalTimer.log("Building network sponsored by vConTACT3...")
+    GlobalTimer.log("vConTACT3 is now searching for its database...")
+
+    vcontact3_path = Path(shutil.which('vcontact3')) #Acá es para buscar vcontact3
+    db_path = vcontact3_path.parent.parent / 'db' / 'vcontact3' #Sube 2 niveles, porque aquí están las DB normalmente
+    db_path.mkdir(parents=True, exist_ok=True)
+
+    existing_versions = list(db_path.glob('*.json'))
+    if existing_versions:
+        GlobalTimer.log(f"vConTACT3 database found, skipping download.")
+    else:
+        GlobalTimer.log("vConTACT3 database not found, downloading latest version...")
+        subprocess.run([
+            'vcontact3', 'prepare_databases',
+            '--get-version', 'latest',
+            '--set-location', str(db_path)
+        ], check=True)
+
     subprocess.run([
         'vcontact3', 'run',
         '--nucleotide', input_fasta,
         '--output', output_dir,
+        '--db-path', str(db_path),
         '--exports', 'graphml'
     ], check=True)
     
-    network_file = glob.glob(f'{output_dir}/*.graphml')[0]
-    network = nx.read_graphml(network_file)
+    #network_file = glob.glob(f'{output_dir}/*.graphml')[0]
+    #network = nx.read_graphml(network_file)
+
+    network_files = list(Path(output_dir).rglob('exports/networks/part*.graphml'))
+    graphs = [nx.read_graphml(str(f)) for f in network_files]
+    network = nx.compose_all(graphs)
+
+    # Normalization before using as an input
+    gene_sharing_weights = nx.get_edge_attributes(network, 'weight')
+    total_weight = sum(gene_sharing_weights.values())
+    normalized_weights = {edge: w / total_weight for edge, w in gene_sharing_weights.items()}
+    nx.set_edge_attributes(network, normalized_weights, 'weight')
 
     return network
 
+def get_gene_sharing_network_vcontact2(input_fasta, output_dir):
+    protein_fasta = f'{output_dir}/proteins.faa'
+    diamond_out = f'{output_dir}/diamond.tsv'
+
+    # Predecir proteínas
+    GlobalTimer.log("Predicting proteins with Prodigal...")
+    subprocess.run([
+        'conda', 'run', '-n', 'vcontact2_env',
+        'prodigal', '-p', 'meta',
+        '-i', input_fasta,
+        '-a', protein_fasta,
+        '-f', 'gff'
+    ], check=True)
+
+    # All-vs-all con Diamond
+    GlobalTimer.log("Running Diamond all-vs-all...")
+    subprocess.run([
+        'conda', 'run', '-n', 'vcontact2_env',
+        'diamond', 'blastp',
+        '-q', protein_fasta,
+        '-d', protein_fasta,
+        '-o', diamond_out,
+        '--outfmt', '6', 'qseqid', 'sseqid', 'pident',
+        '--sensitive'
+    ], check=True)
+
+    # Construir network contando genes compartidos por par de genomas
+    GlobalTimer.log("Building gene sharing network...")
+    hits = pd.read_csv(diamond_out, sep='\t', names=['query', 'subject', 'pident'])
+    
+    # Extraer nombre del genoma de cada proteína (asume formato prodigal: genoma_1, genoma_2...)
+    hits['genome1'] = hits['query'].str.rsplit('_', n=1).str[0]
+    hits['genome2'] = hits['subject'].str.rsplit('_', n=1).str[0]
+    
+    # Filtrar self-hits y contar genes compartidos por par
+    hits = hits[hits['genome1'] != hits['genome2']]
+    edges = hits.groupby(['genome1', 'genome2']).size().reset_index(name='weight')
+    
+    G = nx.from_pandas_edgelist(edges, source='genome1', target='genome2', edge_attr='weight')
+    
+    # Normalizar pesos
+    weights = nx.get_edge_attributes(G, 'weight')
+    total_weight = sum(weights.values())
+    normalized_weights = {edge: w / total_weight for edge, w in weights.items()}
+    nx.set_edge_attributes(G, normalized_weights, 'weight')
+
+    return G
+
 def get_network(matrix):
-    #matrix = np.loadtxt(matrix_file, delimiter=",", skiprows=1)
     if isinstance(matrix, pd.DataFrame):
         matrix = matrix.values
     network = nx.from_numpy_array(matrix)
@@ -146,7 +223,6 @@ def get_network_from_edges(edges_df, threshold):
     return network
 
 def set_community_atribute_on_nodes(network, count_table):
-    
     # Ensure OTU IDs are the index
     if count_table.index.dtype == 'int64':
         count_table = count_table.set_index(count_table.columns[0])
@@ -173,4 +249,13 @@ def get_input_ani_network(input_fasta, output_dir, threshold, count_table):
     # Add community attributes
     input_network = set_community_atribute_on_nodes(network, count_table)
 
+    return input_network
+
+def get_input_vcontact3_network(input_fasta, output_dir, count_table):
+
+    network = get_gene_sharing_network_vcontact2(input_fasta, output_dir)
+    print("==AQUI ENTRA EL NETWORK==")
+    print(network)
+    input_network = set_community_atribute_on_nodes(network, count_table)
+    
     return input_network
