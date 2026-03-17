@@ -166,7 +166,8 @@ def get_plot_network_output(network):
     print(f"Network plot saved to: virofrac_network_plot.png")
 
 
-# --- PERMUTATION TESTS ---
+# --- PERMUTATION TESTS BASED ON CLUSTERING-SIGNIFICANCE-TEST GITHUB REPO ---
+# Script by Yasas1994 at https://github.com/Yasas1994/Clustering-significance-test
 
 # This function builds a newick tree from node and labels.
 # It will return a formatted version of this.
@@ -188,24 +189,32 @@ def scipy_linkage_to_ete3(linkage_matrix, labels):
 
     return tree
 
-# Corre el test de permutaciones sobre el árbol UPGMA y retorna
-# un p-value global que indica qué tan significativamente las
-# muestras de la misma categoría se agrupan juntas.
+# SIMULATE() FUNCTION FROM CLUSTERING-SIGNIFICANCE-TEST GITHUB REPO
+def simulate(annot, column):
+    annot = annot.copy()
+    annot['tmp'] = annot[column].sample(frac=1).values
+    tmp2 = annot.groupby('cluster')['tmp'].value_counts().reset_index()
+    tmp2.columns = ['cluster', 'tmp', 'counts']
+    sum2 = tmp2.groupby('cluster')['counts'].sum()
+    max2 = tmp2.groupby('cluster')['counts'].max()
+
+    return sum(max2) / sum(sum2)
+
+# RUN_PERMUTATION_TEST() FUNCTION BASED ON CLUSTERING-SIGNIFICANCE-TEST GITHUB REPO
 def run_permutation_test(tree, metadata, column, replicates=1000, min_leaves=3, workers=10):
-    # Extraer clusters de ramas internas
     clust_n = 0
     clust_leaf = []
-    for branch in tree.traverse_postorder():
+    for branch in tree.traverse("postorder"):
         if not branch.is_leaf():
             tmp_ = []
-            for leaf in branch.traverse_leaves():
-                tmp_.append([clust_n, str(leaf)])
+            for leaf in branch.get_leaves():
+                tmp_.append([clust_n, leaf.name])
             if len(tmp_) > min_leaves:
                 clust_leaf.extend(tmp_)
                 clust_n += 1
 
     if not clust_leaf:
-        GlobalTimer.log(f"⚠️ No clusters found for permutation test on {column}.")
+        GlobalTimer.log(f"ERROR: No clusters found for permutation test on {column}.")
         return 1.0
 
     clust_leaf = pd.DataFrame(clust_leaf, columns=['cluster', 'leaf_lab'])
@@ -216,36 +225,28 @@ def run_permutation_test(tree, metadata, column, replicates=1000, min_leaves=3, 
         right_on=metadata.index.name or metadata.reset_index().columns[0]
     )
 
-    # Purity global observada
+    # Observed global purity
     tmp = annot.groupby('cluster')[column].value_counts().reset_index()
     tmp.columns = ['cluster', column, 'counts']
     sum_cluster = tmp.groupby('cluster')['counts'].sum()
     max_per_cluster = tmp.groupby('cluster')['counts'].max()
     observed_purity = sum(max_per_cluster) / sum(sum_cluster)
 
-    # Simulaciones
-    def simulate(annot):
-        annot = annot.copy()
-        annot['tmp'] = annot[column].sample(frac=1).values
-        tmp2 = annot.groupby('cluster')['tmp'].value_counts().reset_index()
-        tmp2.columns = ['cluster', 'tmp', 'counts']
-        sum2 = tmp2.groupby('cluster')['counts'].sum()
-        max2 = tmp2.groupby('cluster')['counts'].max()
-        return sum(max2) / sum(sum2)
-
     simulated = []
     with ThreadPoolExecutor(max_workers=workers) as executor:
-        futures = [executor.submit(simulate, annot) for _ in range(replicates)]
+        futures = [executor.submit(simulate, annot, column) for _ in range(replicates)]
         for future in as_completed(futures):
             simulated.append(future.result())
 
     p_value = sum(s >= observed_purity for s in simulated) / replicates
+
     return p_value
 
-# Añade un p-value global por debajo de cada barra de colores
-# en ax_col_colors, uno por cada legend_column.
+
+# Adds global p-value under color strips
+# one for each legend column.
 def add_significance_labels_to_heatmap(g, row_linkage, labels, metadata, legend_columns, replicates=1000):
-    tree = scipy_linkage_to_treeswift(row_linkage, labels)
+    tree = scipy_linkage_to_ete3(row_linkage, labels)
 
     pos = g.ax_col_colors.get_position()
     bar_height = (pos.y1 - pos.y0) / len(legend_columns)
@@ -259,7 +260,6 @@ def add_significance_labels_to_heatmap(g, row_linkage, labels, metadata, legend_
         star = '*' if p_value < 0.05 else ''
         label = f'p={p_value:.3f}{star}'
 
-        # Posición a la derecha de ax_col_colors, centrada verticalmente en cada barra
         x_pos = pos.x1 + 0.01
         y_pos = pos.y1 - (col_idx + 0.5) * bar_height
 
