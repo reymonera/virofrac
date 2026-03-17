@@ -5,11 +5,13 @@ import pandas as pd
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
-from scipy.cluster.hierarchy import linkage
+from scipy.cluster.hierarchy import linkage, to_tree
 from scipy.spatial.distance import squareform
 from tqdm import tqdm
 from matplotlib.patches import Patch
 from matplotlib.colors import LinearSegmentedColormap
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from ete3 import Tree
 
 # This function manages the partial OTU tables that will
 # be used as an input when compairing each pair.
@@ -82,12 +84,8 @@ def get_frac_matrix_output(otu_df, tree, distance_type):
 # calculates the size of the matrix and then builds
 # the matrix based on the selected distance.
 def get_net_frac_matrix_output(network, distance_type, count_table):
-    # Necesito el count_table para decidir las comunidades
-    #sample_names = count_table.columns[1:].tolist()
-
     count_table = count_table.set_index(count_table.columns[0])
-
-    sample_names = count_table.columns.tolist()  # Already indexed, so columns are samples
+    sample_names = count_table.columns.tolist()
     n = len(sample_names)
     total_pairs = n * (n - 1) // 2
     
@@ -108,7 +106,6 @@ def get_net_frac_matrix_output(network, distance_type, count_table):
         else:
             distance = frac.get_unweighted_netunifrac(network, sample_i, sample_j)
         
-        # Esas interacciones se van guardando y producen la matriz, que es la que se retorna
         matrix[i, j] = distance
         matrix[j, i] = distance
 
@@ -141,29 +138,21 @@ def get_color_gradient_for_heatmap(color_gradient):
     if isinstance(color_gradient, str):
         if color_gradient.startswith('#'):
             GlobalTimer.log("Color pair not specified, using white in the custom gradiet...")
-
             return LinearSegmentedColormap.from_list('custom', ['#FFFFFF', color_gradient])
         else:
             GlobalTimer.log("Using predefined colormap")
-
             return color_gradient
 
 # ESTA FUNCIÓN ESTÁ DE RESIDUO PERO PUEDE QUE FUNCIONE
 def get_plot_network_output(network):
     """Plot the network and save to file."""
-    import matplotlib.pyplot as plt
     import networkx as nx
     
     plt.figure(figsize=(12, 12))
-    
-    # Use spring layout for better visualization
     pos = nx.spring_layout(network, k=0.5, iterations=50, seed=42)
-    
-    # Get edge weights for coloring
     edges = network.edges(data=True)
     weights = [d.get('weight', 1.0) for _, _, d in edges]
     
-    # Draw
     nx.draw_networkx_nodes(network, pos, node_size=20, node_color='steelblue', alpha=0.8)
     nx.draw_networkx_edges(network, pos, width=0.5, alpha=0.5, 
                            edge_color=weights, edge_cmap=plt.cm.coolwarm)
@@ -175,7 +164,116 @@ def get_plot_network_output(network):
     plt.close()
     
     print(f"Network plot saved to: virofrac_network_plot.png")
-    
+
+
+# --- PERMUTATION TESTS ---
+
+# This function builds a newick tree from node and labels.
+# It will return a formatted version of this.
+def build_newick(node, labels):
+    if node.is_leaf():
+        return labels[node.id]
+    left = build_newick(node.left, labels)
+    right = build_newick(node.right, labels)
+    dist = node.dist
+
+    return f"({left}:{dist},{right}:{dist})"
+
+# This function converts the matrix to a proper
+# ete3 tree.
+def scipy_linkage_to_ete3(linkage_matrix, labels):
+    root, _ = to_tree(linkage_matrix, rd=True)
+    newick = build_newick(root, labels) + ";"
+    tree = Tree(newick, format=1)
+
+    return tree
+
+# Corre el test de permutaciones sobre el árbol UPGMA y retorna
+# un p-value global que indica qué tan significativamente las
+# muestras de la misma categoría se agrupan juntas.
+def run_permutation_test(tree, metadata, column, replicates=1000, min_leaves=3, workers=10):
+    # Extraer clusters de ramas internas
+    clust_n = 0
+    clust_leaf = []
+    for branch in tree.traverse_postorder():
+        if not branch.is_leaf():
+            tmp_ = []
+            for leaf in branch.traverse_leaves():
+                tmp_.append([clust_n, str(leaf)])
+            if len(tmp_) > min_leaves:
+                clust_leaf.extend(tmp_)
+                clust_n += 1
+
+    if not clust_leaf:
+        GlobalTimer.log(f"⚠️ No clusters found for permutation test on {column}.")
+        return 1.0
+
+    clust_leaf = pd.DataFrame(clust_leaf, columns=['cluster', 'leaf_lab'])
+    annot = pd.merge(
+        clust_leaf,
+        metadata[[column]].reset_index(),
+        left_on='leaf_lab',
+        right_on=metadata.index.name or metadata.reset_index().columns[0]
+    )
+
+    # Purity global observada
+    tmp = annot.groupby('cluster')[column].value_counts().reset_index()
+    tmp.columns = ['cluster', column, 'counts']
+    sum_cluster = tmp.groupby('cluster')['counts'].sum()
+    max_per_cluster = tmp.groupby('cluster')['counts'].max()
+    observed_purity = sum(max_per_cluster) / sum(sum_cluster)
+
+    # Simulaciones
+    def simulate(annot):
+        annot = annot.copy()
+        annot['tmp'] = annot[column].sample(frac=1).values
+        tmp2 = annot.groupby('cluster')['tmp'].value_counts().reset_index()
+        tmp2.columns = ['cluster', 'tmp', 'counts']
+        sum2 = tmp2.groupby('cluster')['counts'].sum()
+        max2 = tmp2.groupby('cluster')['counts'].max()
+        return sum(max2) / sum(sum2)
+
+    simulated = []
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        futures = [executor.submit(simulate, annot) for _ in range(replicates)]
+        for future in as_completed(futures):
+            simulated.append(future.result())
+
+    p_value = sum(s >= observed_purity for s in simulated) / replicates
+    return p_value
+
+# Añade un p-value global por debajo de cada barra de colores
+# en ax_col_colors, uno por cada legend_column.
+def add_significance_labels_to_heatmap(g, row_linkage, labels, metadata, legend_columns, replicates=1000):
+    tree = scipy_linkage_to_treeswift(row_linkage, labels)
+
+    pos = g.ax_col_colors.get_position()
+    bar_height = (pos.y1 - pos.y0) / len(legend_columns)
+
+    for col_idx, legend_col in enumerate(legend_columns):
+        if legend_col not in metadata.columns:
+            continue
+
+        GlobalTimer.log(f"Running permutation test for {legend_col}...")
+        p_value = run_permutation_test(tree, metadata, legend_col, replicates=replicates)
+        star = '*' if p_value < 0.05 else ''
+        label = f'p={p_value:.3f}{star}'
+
+        # Posición a la derecha de ax_col_colors, centrada verticalmente en cada barra
+        x_pos = pos.x1 + 0.01
+        y_pos = pos.y1 - (col_idx + 0.5) * bar_height
+
+        g.figure.text(
+            x_pos, y_pos,
+            label,
+            fontsize=8,
+            va='center',
+            ha='left',
+            rotation=0
+        )
+
+# --- FIN DE FUNCIONES AGREGADAS ---
+
 
 # This function controls the heatmap output. There are two 
 # options: When there is no metadata input and when there 
@@ -222,10 +320,8 @@ def get_heatmap_output(matrix, otu_df, distance_type, color_gradient, metadata_f
         
         plt.savefig('virofrac_heatmap.png', dpi=300, bbox_inches='tight')
         GlobalTimer.log("✓ Heatmap ready! Showing the final plot...")
-        #print("✓ Heatmap ready! Showing the final plot...")
         plt.show()
         GlobalTimer.log("✓ Heatmap ready! Showing the final plot...")
-        #print(f"✓ Heatmap saved in virofrac_heatmap.png")
         return g
     
     with open(metadata_file, 'r') as f:
@@ -249,7 +345,6 @@ def get_heatmap_output(matrix, otu_df, distance_type, color_gradient, metadata_f
     for idx, legend_col in enumerate(legend_columns):
         if legend_col not in metadata.columns:
             GlobalTimer.log("⚠️ Legend column not found, skipping")
-            #print("⚠️ Legend column not found, skipping")
             continue
     
         values = metadata[legend_col]
@@ -270,7 +365,6 @@ def get_heatmap_output(matrix, otu_df, distance_type, color_gradient, metadata_f
                         color_map[val] = sns.color_palette('tab10')[fallback_idx]
             else:
                 GlobalTimer.log("⚠️ Color column not found, using automatic colors")
-                #print("⚠️ Color column not found, using automatic colors")
                 palette = sns.color_palette('tab10', n_colors=len(unique_values))
                 color_map = dict(zip(unique_values, palette))
         else:
@@ -291,7 +385,6 @@ def get_heatmap_output(matrix, otu_df, distance_type, color_gradient, metadata_f
 
     if len(colors_combined.columns) == 0:
         GlobalTimer.log("⚠️ No valid columns, generating simple heatmap")
-        #print("⚠️ No valid columns, generating simple heatmap")
         return get_heatmap_output(matrix, otu_df, distance_type, None, None, None)
 
     g = sns.clustermap(
@@ -359,17 +452,17 @@ def get_heatmap_output(matrix, otu_df, distance_type, color_gradient, metadata_f
         x=0.45,
         y=0.96
     )
-    
-    # Output files being handled here.
+
+    # Llamando a add_significance_labels_to_heatmap para agregar
+    # p-values debajo de cada barra de colores
+    labels = list(matrix_df.index)
+    add_significance_labels_to_heatmap(g, row_linkage, labels, metadata, legend_columns)
+
     plt.savefig('virofrac_heatmap.png', dpi=300, bbox_inches='tight')
     plt.savefig('virofrac_heatmap.svg', format='svg', bbox_inches='tight')
 
     GlobalTimer.log("✓ Heatmap ready! Showing the final plot...")
-    #print("✓ Heatmap ready! Showing the final plot...")
     plt.show()
     GlobalTimer.log("✓ Heatmap saved in virofrac_heatmap.png")
-    #print("✓ Heatmap saved in virofrac_heatmap.png")
     
     return g
-
-
