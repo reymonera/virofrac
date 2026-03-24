@@ -50,7 +50,7 @@ def parse_arguments():
     parser.add_argument(
         '--threshold',
         type=float,
-        default=0.70,
+        default=0,
         required=False
     )
     parser.add_argument(

@@ -257,6 +257,7 @@ def add_significance_labels_to_heatmap(g, row_linkage, labels, metadata, legend_
 
         GlobalTimer.log(f"Running permutation test for {legend_col}...")
         p_value = run_permutation_test(tree, metadata, legend_col, replicates=replicates)
+        GlobalTimer.log(f"Permutation test for {legend_col}: p={p_value} (n={replicates} replicates)")
         star = '*' if p_value < 0.05 else ''
         label = f'p={p_value:.3f}{star}'
 

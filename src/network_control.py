@@ -60,9 +60,7 @@ def set_edge_list_to_matrix(edges_df):
         matrix[j, i] = ani_value
 
     np.fill_diagonal(matrix, 1.0)
-    
-    #print(f"DEBUG: Adjacency matrix shape = {matrix.shape}")
-    
+        
     return matrix
 
 def get_ani_matrix_vclust(input_fasta, output_dir):

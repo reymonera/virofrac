@@ -28,7 +28,7 @@ def get_validation_otu_table(filepath):
         # Normalization process
         GlobalTimer.log("Checking if OTU table is normalized...")
         col_sums = df[sample_cols].sum(axis=0)
-        print(col_sums)
+        #print(col_sums)
         if not (abs(col_sums - 1.0) < 1e-6).all():
             GlobalTimer.log("WARNING: OTU table columns do not sum to 1, normalizing...")
             df[sample_cols] = df[sample_cols].div(col_sums, axis=1)

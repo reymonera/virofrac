@@ -15,35 +15,42 @@ if [[ $# -eq 0 ]]; then
     echo "Made with elegance 🍷"
     echo ""
     echo "General options:"
-    echo "  -h, --help                              Shows this helpful text :)"
+    echo "  -h, --help                             Shows this helpful text :)"
     echo ""
     echo "Input options:"
-    echo "  -f, --fasta [file]                      Selects .fasta file"
-    echo "  -o, --otu-table [file]                  Selects OTU table [.tsv|.csv|.tab|.tabular]"
-    echo "  -t, --tax-table [file]                  Selects taxonomic table [.tsv|.csv|.tab|.tabular]"
+    echo "  -f, --fasta [file]                     Selects FASTA file for network options [.fasta|.fna|.fa]"
+    echo "  -o, --otu-table [file]                 Selects OTU table [.tsv|.csv|.tab|.tabular]"
+    echo "  -t, --tax-table [file]                 Selects taxonomic table [.tsv|.csv|.tab|.tabular]"
     echo ""
     echo "Distance options:"
-    echo "  -uu, --unweighted-unifrac               Selects the unweighted unifrac option. When paired with the network option it will perform a Weighted NetUniFrac distance."
-    echo "  -uw, --unnormalized-weighted-unifrac    Selects the unnormalized weighted unifrac option"
-    echo "  -nw, --normalized-weighted-unifrac      Selects the normalized weighted unifrac option. When paired with the network option it will perform a Weighted NetUniFrac distance."
-    echo "  --based-spectral-clustering             Selects the distance based on spectral clustering (Only with Network option)"
+    echo "  -u, --unweighted-distance              Selects the unweighted distance option."
+    echo "                                         • When paired with a tree option it will perform an unweighted UniFrac distance." 
+    echo "                                         • When paired with the network option it will perform an unweighted NetUniFrac distance."
+    echo "  -m, --unnormalized-weighted-distance   Selects the unnormalized weighted distance option."
+    echo "  -w, --normalized-weighted-distance     Selects the normalized weighted unifrac option. When paired with the network option it will perform a Weighted NetUniFrac distance."
+    echo "                                         • When paired with a tree option it will perform a normalized weighted UniFrac distance." 
+    echo "                                         • When paired with the network option it will perform an weighted NetUniFrac distance."
+    echo "  -s, --based-spectral-clustering        Selects the distance based on spectral clustering (Only available with Network option)"
     echo ""
     echo "Tree options:"
-    echo "  -tt, --tax-tree                         Selects the taxonomic tree mode"
-    echo "  -pt, --phy-tree [file]                  Selects the phylogenetic tree option [.newick]"
+    echo "  -x, --tax-tree                         Selects the taxonomic tree mode"
+    echo "  -p, --phy-tree [file]                  Selects the phylogenetic tree option [.newick]"
     echo ""
     echo "Network options:"
-    echo "  -nt, --network                          Selects network option"
-    echo "  --ani                                   Selects ANI based network option (works wth vclust)"
-    echo "  --gene-sharing                          Selects gene-sharing based network option (works wth vcontact3)"
-    echo "  --threshold [value]                     Selects a threshold for the network-based clustering. Default: 0.70"
+    echo "  -n, --network                          Selects network option"
+    echo "  -a, --ani                              Selects ANI based network option (works wth vclust)"
+    echo "  -g, --gene-sharing                     Selects gene-sharing based network option (works wth vcontact3)"
+    echo "  -b, --threshold [value]                Selects a threshold for the network-based clustering. Default: 0.70"
     echo ""
     echo "Metadata/Plot options:"
-    echo "  -m, --metadata [file]                   A metadata file used for the final heatmap plot. If not used, it will output a default plot. [.tsv|.csv|.tab|.tabular]"
-    echo "  -l, --legend-column [column_name]       This will apply color strips and a legend to the final heatmap plot. Requires a specified color column."
-    echo "  -c, --color-column [column_name]        If used, the script will apply the colors in the selected column. Requires a specified legend column."
-    echo "                                          NOTE: Specify the legend columns and then the color columns. The script will use the corresponding order."
-    echo "  -g, --color-gradient [string]           Deafult: 'coolwarm'. When used, user can specify another gradient or a custom gradient using hexacode"
+    echo "  -m, --metadata [file]                  A metadata file used for the final heatmap plot. If not used, it will output a default plot. [.tsv|.csv|.tab|.tabular]"
+    echo "  -l, --legend-column [column_name]      This will apply color strips and a legend to the final heatmap plot. Requires a specified color column."
+    echo "  -c, --color-column [column_name]       If used, the script will apply the colors in the selected column. Requires a specified legend column."
+    echo "                                         NOTE: Specify the legend columns and then the color columns. The script will use the corresponding order."
+    echo "  -r, --color-gradient [string]          Deafult: 'coolwarm'. When used, user can specify another gradient or a custom gradient using hexacode"
+    echo ""
+    echo "Output options:"
+    echo "  -d, --output-directory [directory]     Defines an output directory."
     echo ""
     exit 0
 fi
@@ -96,12 +103,12 @@ while [[ $# -gt 0 ]]; do
             FASTA_FILE="$2"
             shift 2
             ;;
-        -tt|--tax-tree)
+        -x|--tax-tree)
             TREE_TAX_USED=true
             TREE_TYPE="taxonomic"
             shift
             ;;
-        -pt|--phy-tree)
+        -p|--phy-tree)
             if [[ -z "${2:-}" ]]; then
                 echo "Error: -pt/--phy_tree requires a phylogenetic tree file"
                 exit 1
@@ -112,43 +119,43 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         # UniFrac/Distance metrics flags
-        -uu|--unweighted-unifrac)
+        -u|--unweighted-unifrac)
             UNIFRAC_UU_USED=true
             UNIFRAC_TYPE="unweighted unifrac"
             shift
             ;;
-        -uw|--unnormalized-weighted-unifrac)
+        -m|--unnormalized-weighted-unifrac)
             UNIFRAC_UW_USED=true
             UNIFRAC_TYPE="unnormalized weighted unifrac"
             shift
             ;;
-        -nw|--normalized-weighted-unifrac)
+        -w|--normalized-weighted-unifrac)
             UNIFRAC_NW_USED=true
             UNIFRAC_TYPE="normalized weighted unifrac"
             shift
             ;;
-        --based-spectral-clustering)
+        -s|--based-spectral-clustering)
             SPECTRAL_CLUSTERING_USED=true
             UNIFRAC_TYPE="spectral clustering"
             shift
             ;;
         # Network flags
-        -nt|--network)
+        -n|--network)
             TREE_NET_USED=true
             TREE_TYPE="network"
             shift
             ;;
-        --ani)
+        -a|--ani)
             ANI_USED=true
             NETWORK_METHOD="ani"
             shift
             ;;
-        --gene-sharing)
+        -g|--gene-sharing)
             GENE_SHARING_USED=true
             NETWORK_METHOD="gene-sharing"
             shift
             ;;
-        --threshold)
+        -b|--threshold)
             if [[ -z "${2:-}" ]]; then
                 echo "Error: --threshold requires a numeric value"
                 exit 1
@@ -177,52 +184,59 @@ while [[ $# -gt 0 ]]; do
             COLOR_COLUMNS+=("$2")
             shift 2
             ;;
-        -g|--color-gradient)
+        -r|--color-gradient)
             COLOR_GRADIENT="$2"
             shift 2
             ;;
         -h|--help)
-                echo ' _  _  __  ___   __  ___  ___    __   __ '
-                echo '( )( )(  )(  ,) /  \(  _)(  ,)  (  ) / _)'
-                echo ' \\//  )(  )  \( () )) _) )  \  /__\( (_ '
-                echo ' (__) (__)(_)\_)\__/(_)  (_)\_)(_)(_)\__)'
-                echo ""
-                echo "Virofrac v. 1.0.0"
-                echo "Usage: $(basename "$0") [options]"
-                echo ""
-                echo "Made with elegance 🍷"
-                echo ""
-                echo "General options:"
-                echo "  -h, --help                              Shows this helpful text :)"
-                echo ""
-                echo "Input options:"
-                echo "  -f, --fasta [file]                      Selects .fasta file"
-                echo "  -o, --otu-table [file]                  Selects OTU table [.tsv|.csv|.tab|.tabular]"
-                echo "  -t, --tax-table [file]                  Selects taxonomic table [.tsv|.csv|.tab|.tabular]"
-                echo ""
-                echo "Distance options:"
-                echo "  -uu, --unweighted-unifrac               Selects the unweighted unifrac option. When paired with the network option it will perform a Weighted NetUniFrac distance."
-                echo "  -uw, --unnormalized-weighted-unifrac    Selects the unnormalized weighted unifrac option"
-                echo "  -nw, --normalized-weighted-unifrac      Selects the normalized weighted unifrac option. When paired with the network option it will perform a Weighted NetUniFrac distance."
-                echo "  --based-spectral-clustering             Selects the distance based on spectral clustering (Only with Network option)"
-                echo ""
-                echo "Tree options:"
-                echo "  -tt, --tax-tree                         Selects the taxonomic tree mode"
-                echo "  -pt, --phy-tree [file]                  Selects the phylogenetic tree option [.newick]"
-                echo ""
-                echo "Network options:"
-                echo "  -nt, --network                          Selects network option"
-                echo "  --ani                                   Selects ANI based network option (works wth vclust)"
-                echo "  --gene-sharing                          Selects gene-sharing based network option (works wth vcontact3)"
-                echo "  --threshold [value]                     Selects a threshold for the network-based clustering. Default: 0.70"
-                echo ""
-                echo "Metadata/Plot options:"
-                echo "  -m, --metadata [file]                   A metadata file used for the final heatmap plot. If not used, it will output a default plot. [.tsv|.csv|.tab|.tabular]"
-                echo "  -l, --legend-column [column_name]       This will apply color strips and a legend to the final heatmap plot. Requires a specified color column."
-                echo "  -c, --color-column [column_name]        If used, the script will apply the colors in the selected column. Requires a specified legend column."
-                echo "                                          NOTE: Specify the legend columns and then the color columns. The script will use the corresponding order."
-                echo "  -g, --color-gradient [string]           Deafult: 'coolwarm'. When used, user can specify another gradient or a custom gradient using hexacode"
-                echo ""
+            echo ' _  _  __  ___   __  ___  ___    __   __ '
+            echo '( )( )(  )(  ,) /  \(  _)(  ,)  (  ) / _)'
+            echo ' \\//  )(  )  \( () )) _) )  \  /__\( (_ '
+            echo ' (__) (__)(_)\_)\__/(_)  (_)\_)(_)(_)\__)'
+            echo ""
+            echo "Virofrac v. 1.0.0"
+            echo "Usage: $(basename "$0") [options]"
+            echo ""
+            echo "Made with elegance 🍷"
+            echo ""
+            echo "General options:"
+            echo "  -h, --help                             Shows this helpful text :)"
+            echo ""
+            echo "Input options:"
+            echo "  -f, --fasta [file]                     Selects FASTA file for network options [.fasta|.fna|.fa]"
+            echo "  -o, --otu-table [file]                 Selects OTU table [.tsv|.csv|.tab|.tabular]"
+            echo "  -t, --tax-table [file]                 Selects taxonomic table [.tsv|.csv|.tab|.tabular]"
+            echo ""
+            echo "Distance options:"
+            echo "  -u, --unweighted-distance              Selects the unweighted distance option."
+            echo "                                         • When paired with a tree option it will perform an unweighted UniFrac distance." 
+            echo "                                         • When paired with the network option it will perform an unweighted NetUniFrac distance."
+            echo "  -m, --unnormalized-weighted-distance   Selects the unnormalized weighted distance option."
+            echo "  -w, --normalized-weighted-distance     Selects the normalized weighted unifrac option. When paired with the network option it will perform a Weighted NetUniFrac distance."
+            echo "                                         • When paired with a tree option it will perform a normalized weighted UniFrac distance." 
+            echo "                                         • When paired with the network option it will perform an weighted NetUniFrac distance."
+            echo "  -s, --based-spectral-clustering        Selects the distance based on spectral clustering (Only available with Network option)"
+            echo ""
+            echo "Tree options:"
+            echo "  -x, --tax-tree                         Selects the taxonomic tree mode"
+            echo "  -p, --phy-tree [file]                  Selects the phylogenetic tree option [.newick]"
+            echo ""
+            echo "Network options:"
+            echo "  -n, --network                          Selects network option"
+            echo "  -a, --ani                              Selects ANI based network option (works wth vclust)"
+            echo "  -g, --gene-sharing                     Selects gene-sharing based network option (works wth vcontact3)"
+            echo "  -b, --threshold [value]                Selects a threshold for the network-based clustering. Default: 0.70"
+            echo ""
+            echo "Metadata/Plot options:"
+            echo "  -m, --metadata [file]                  A metadata file used for the final heatmap plot. If not used, it will output a default plot. [.tsv|.csv|.tab|.tabular]"
+            echo "  -l, --legend-column [column_name]      This will apply color strips and a legend to the final heatmap plot. Requires a specified color column."
+            echo "  -c, --color-column [column_name]       If used, the script will apply the colors in the selected column. Requires a specified legend column."
+            echo "                                         NOTE: Specify the legend columns and then the color columns. The script will use the corresponding order."
+            echo "  -r, --color-gradient [string]          Deafult: 'coolwarm'. When used, user can specify another gradient or a custom gradient using hexacode"
+            echo ""
+            echo "Output options:"
+            echo "  -d, --output-directory [directory]     Defines an output directory."
+            echo ""
             exit 0
             ;;
         *)
@@ -523,11 +537,11 @@ fi
 # Handling file extensions in FASTA_FILE
 if [[ -n "$FASTA_FILE" ]]; then
     case "$FASTA_FILE" in
-        *.fastq|*.fq|*.fastq.gz|*.fq.gz|*.fasta|*.fna)
+        *.fasta|*.fna|*.fa)
             ;;
         *)
             echo "Error: Fasta file doesn't have expected extension"
-            echo "Expected: .fastq, .fq, .fasta, .fa, or .gz compressed versions" # Pretty sure it is just .fastq or .fq, but we haven't reached this stage yet.
+            echo "Expected: .fasta, .fa, or .fna"
             echo "Got: $FASTA_FILE"
             exit 1
             ;;
