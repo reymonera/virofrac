@@ -289,7 +289,15 @@ def get_bichromatic_edges(network, community_A, community_B):
         if not ((n1_in_A or n1_in_B) and (n2_in_A or n2_in_B)):
             continue
         
-        if n1_in_A != n2_in_A or n1_in_B != n2_in_B:
+        # if n1_in_A != n2_in_A or n1_in_B != n2_in_B:
+        #     bichromatic_weights.append(weight)
+        
+        # Original bichromatic cases (A-B, A-AB, B-AB)
+        # PLUS AB-AB (both nodes in both communities)
+        both_in_both = (n1_in_A and n1_in_B and n2_in_A and n2_in_B)
+        original_bichromatic = (n1_in_A != n2_in_A or n1_in_B != n2_in_B)
+        
+        if original_bichromatic or both_in_both:
             bichromatic_weights.append(weight)
     
     return bichromatic_weights
@@ -407,6 +415,31 @@ def get_based_spectral_clustering(network, community_A, community_B):
     volume_of_sample_B = get_volume_of_first_sample(network, community_B, community_A)
 
     sum_bichromatic_similarities = sum(bichromatic_edges)
+
+    ### DEBUG
+    # Check what community labels actually exist in the network
+    # Check how many nodes belong to each community
+    nodes_in_A = [n for n in network.nodes() if community_A in network.nodes[n].get('communities', {})]
+    nodes_in_B = [n for n in network.nodes() if community_B in network.nodes[n].get('communities', {})]
+    print(f'  Comparing: {community_A} vs {community_B}')
+    print(f'  Nodes in A: {len(nodes_in_A)}, Nodes in B: {len(nodes_in_B)}')
+    print(f'  Overlap (nodes in both): {len(set(nodes_in_A) & set(nodes_in_B))}')
+    
+    bichromatic_edges = get_bichromatic_edges(network, community_A, community_B)
+    volume_of_sample_A = get_volume_of_first_sample(network, community_A, community_B)
+    volume_of_sample_B = get_volume_of_first_sample(network, community_B, community_A)
+    sum_bichromatic_similarities = sum(bichromatic_edges)
+    
+    print(f'  Bichromatic: {len(bichromatic_edges)}, sum: {sum_bichromatic_similarities:.6f}')
+    print(f'  Vol A: {volume_of_sample_A:.6f}, Vol B: {volume_of_sample_B:.6f}')
+    
+    if volume_of_sample_A == 0 or volume_of_sample_B == 0:
+        based_spectral_clustering = 1.0
+    else:
+        based_spectral_clustering = 1-((sum_bichromatic_similarities / volume_of_sample_A + sum_bichromatic_similarities / volume_of_sample_B)*0.5)
+    
+    print(f'  SBC: {based_spectral_clustering:.6f}')
+    ### DEBUG
 
     # Spectral clustering
     if volume_of_sample_A == 0 or volume_of_sample_B == 0:
