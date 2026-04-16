@@ -26,7 +26,7 @@ if [[ $# -eq 0 ]]; then
     echo "  -u, --unweighted-distance              Selects the unweighted distance option."
     echo "                                         • When paired with a tree option it will perform an unweighted UniFrac distance." 
     echo "                                         • When paired with the network option it will perform an unweighted NetUniFrac distance."
-    echo "  -m, --unnormalized-weighted-distance   Selects the unnormalized weighted distance option."
+    echo "  -z, --unnormalized-weighted-distance   Selects the unnormalized weighted distance option."
     echo "  -w, --normalized-weighted-distance     Selects the normalized weighted unifrac option. When paired with the network option it will perform a Weighted NetUniFrac distance."
     echo "                                         • When paired with a tree option it will perform a normalized weighted UniFrac distance." 
     echo "                                         • When paired with the network option it will perform an weighted NetUniFrac distance."
@@ -124,7 +124,7 @@ while [[ $# -gt 0 ]]; do
             UNIFRAC_TYPE="unweighted unifrac"
             shift
             ;;
-        -m|--unnormalized-weighted-unifrac)
+        -z|--unnormalized-weighted-unifrac)
             UNIFRAC_UW_USED=true
             UNIFRAC_TYPE="unnormalized weighted unifrac"
             shift
@@ -211,7 +211,7 @@ while [[ $# -gt 0 ]]; do
             echo "  -u, --unweighted-distance              Selects the unweighted distance option."
             echo "                                         • When paired with a tree option it will perform an unweighted UniFrac distance." 
             echo "                                         • When paired with the network option it will perform an unweighted NetUniFrac distance."
-            echo "  -m, --unnormalized-weighted-distance   Selects the unnormalized weighted distance option."
+            echo "  -z, --unnormalized-weighted-distance   Selects the unnormalized weighted distance option."
             echo "  -w, --normalized-weighted-distance     Selects the normalized weighted unifrac option. When paired with the network option it will perform a Weighted NetUniFrac distance."
             echo "                                         • When paired with a tree option it will perform a normalized weighted UniFrac distance." 
             echo "                                         • When paired with the network option it will perform an weighted NetUniFrac distance."
@@ -333,7 +333,7 @@ if [[ $UNIFRAC_OPTIONS -gt 1 ]]; then
     echo ""
     echo "You used multiple UniFrac options:"
     [[ "$UNIFRAC_UU_USED" == true ]] && echo "  • -uu/--unweighted-unifrac"
-    [[ "$UNIFRAC_UW_USED" == true ]] && echo "  • -uw/--unnormalized-weighted-unifrac"
+    [[ "$UNIFRAC_UW_USED" == true ]] && echo "  • -z/--unnormalized-weighted-unifrac"
     [[ "$UNIFRAC_NW_USED" == true ]] && echo "  • -nw/--normalized-weighted-unifrac"
     echo ""
     echo "Please select only ONE UniFrac type."
@@ -345,7 +345,7 @@ if [[ $UNIFRAC_OPTIONS -eq 0 ]]; then
     echo ""
     echo "Choose one:"
     echo "  • -uu/--unweighted-unifrac"
-    echo "  • -uw/--unnormalized-weighted-unifrac"
+    echo "  • -z/--unnormalized-weighted-unifrac"
     echo "  • -nw/--normalized-weighted-unifrac"
     exit 1
 fi
