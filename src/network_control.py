@@ -134,52 +134,121 @@ def get_gene_sharing_network_vcontact3(input_fasta, output_dir):
     return network
 
 def get_gene_sharing_network_vcontact2(input_fasta, output_dir):
-    protein_fasta = f'{output_dir}/proteins.faa'
-    diamond_out = f'{output_dir}/diamond.tsv'
+    import xml.etree.ElementTree as ET
 
-    # Predecir proteínas
-    GlobalTimer.log("Predicting proteins with Prodigal...")
+    GlobalTimer.log("Building network sponsored by vConTACT3...")
+    GlobalTimer.log("vConTACT3 is now searching for its database...")
+
+    vcontact3_path = Path(shutil.which('vcontact3'))
+    db_path = vcontact3_path.parent.parent / 'db' / 'vcontact3'
+    db_path.mkdir(parents=True, exist_ok=True)
+
+    existing_versions = list(db_path.glob('*.json'))
+    if existing_versions:
+        GlobalTimer.log(f"vConTACT3 database found, skipping download.")
+    else:
+        GlobalTimer.log("vConTACT3 database not found, downloading latest version...")
+        subprocess.run([
+            'vcontact3', 'prepare_databases',
+            '--get-version', 'latest',
+            '--set-location', str(db_path)
+        ], check=True)
+
     subprocess.run([
-        'conda', 'run', '-n', 'vcontact2_env',
-        'prodigal', '-p', 'meta',
-        '-i', input_fasta,
-        '-a', protein_fasta,
-        '-f', 'gff'
+        'vcontact3', 'run',
+        '--nucleotide', input_fasta,
+        '--output', output_dir,
+        '--db-path', str(db_path),
+        '--exports', 'graphml'
     ], check=True)
 
-    # All-vs-all con Diamond
-    GlobalTimer.log("Running Diamond all-vs-all...")
-    subprocess.run([
-        'conda', 'run', '-n', 'vcontact2_env',
-        'diamond', 'blastp',
-        '-q', protein_fasta,
-        '-d', protein_fasta,
-        '-o', diamond_out,
-        '--outfmt', '6', 'qseqid', 'sseqid', 'pident',
-        '--sensitive'
-    ], check=True)
+    # Identify query genomes from the input fasta
+    query_genomes = set()
+    with open(input_fasta, 'r') as f:
+        for line in f:
+            if line.startswith('>'):
+                query_genomes.add(line.strip().lstrip('>').split()[0])
 
-    # Construir network contando genes compartidos por par de genomas
-    GlobalTimer.log("Building gene sharing network...")
-    hits = pd.read_csv(diamond_out, sep='\t', names=['query', 'subject', 'pident'])
-    
-    # Extraer nombre del genoma de cada proteína (asume formato prodigal: genoma_1, genoma_2...)
-    hits['genome1'] = hits['query'].str.rsplit('_', n=1).str[0]
-    hits['genome2'] = hits['subject'].str.rsplit('_', n=1).str[0]
-    
-    # Filtrar self-hits y contar genes compartidos por par
-    hits = hits[hits['genome1'] != hits['genome2']]
-    edges = hits.groupby(['genome1', 'genome2']).size().reset_index(name='weight')
-    
-    G = nx.from_pandas_edgelist(edges, source='genome1', target='genome2', edge_attr='weight')
-    
-    # Normalizar pesos
-    weights = nx.get_edge_attributes(G, 'weight')
-    total_weight = sum(weights.values())
-    normalized_weights = {edge: w / total_weight for edge, w in weights.items()}
-    nx.set_edge_attributes(G, normalized_weights, 'weight')
+    network_files = list(Path(output_dir).glob('exports/networks/part*.graphml'))
+    GlobalTimer.log(f"Found {len(network_files)} partition files to stream.")
 
-    return G
+    ns = {'g': 'http://graphml.graphdrawing.org/xmlns'}
+
+    def stream_edges(graphml_path):
+        """Yield (source, target, weight) tuples from a GraphML file without loading it fully."""
+        weight_key_id = None
+        for event, elem in ET.iterparse(str(graphml_path), events=('end',)):
+            tag = elem.tag.split('}')[-1]
+            if tag == 'key' and elem.get('attr.name') == 'weight':
+                weight_key_id = elem.get('id')
+                elem.clear()
+                break
+            if tag == 'key':
+                elem.clear()
+            if tag == 'graph':
+                break
+
+        context = ET.iterparse(str(graphml_path), events=('end',))
+        for event, elem in context:
+            tag = elem.tag.split('}')[-1]
+            if tag == 'edge':
+                src = elem.get('source')
+                tgt = elem.get('target')
+                w = 1.0
+                for data in elem.findall('g:data', ns):
+                    if weight_key_id is None or data.get('key') == weight_key_id:
+                        try:
+                            w = float(data.text)
+                        except (TypeError, ValueError):
+                            pass
+                        if weight_key_id is not None:
+                            break
+                yield src, tgt, w
+                elem.clear()
+            elif tag in ('node', 'key', 'data'):
+                elem.clear()
+
+    # Accumulate only direct query-to-query edges
+    query_to_query_edges = {}
+
+    for nf in network_files:
+        GlobalTimer.log(f"Streaming {nf.name}...")
+        edge_count = 0
+        kept = 0
+        for src, tgt, w in stream_edges(nf):
+            edge_count += 1
+            if src in query_genomes and tgt in query_genomes:
+                key = (src, tgt) if src < tgt else (tgt, src)
+                if key not in query_to_query_edges or w > query_to_query_edges[key]:
+                    query_to_query_edges[key] = w
+                kept += 1
+        GlobalTimer.log(f"  {edge_count} edges scanned, {kept} retained.")
+
+    # Build the final graph
+    query_network = nx.Graph()
+    query_network.add_nodes_from(query_genomes)
+    for (a, b), w in query_to_query_edges.items():
+        query_network.add_edge(a, b, weight=w)
+
+    del query_to_query_edges
+
+    # Report network structure
+    n_components = nx.number_connected_components(query_network)
+    isolated = sum(1 for n in query_network.nodes() if query_network.degree(n) == 0)
+    GlobalTimer.log(
+        f"Final network: {query_network.number_of_nodes()} nodes, "
+        f"{query_network.number_of_edges()} edges, "
+        f"{n_components} connected components, {isolated} isolated nodes."
+    )
+
+    # Normalize weights
+    gene_sharing_weights = nx.get_edge_attributes(query_network, 'weight')
+    total_weight = sum(gene_sharing_weights.values())
+    if total_weight > 0:
+        normalized_weights = {edge: w / total_weight for edge, w in gene_sharing_weights.items()}
+        nx.set_edge_attributes(query_network, normalized_weights, 'weight')
+
+    return query_network
 
 def get_network(matrix):
     if isinstance(matrix, pd.DataFrame):

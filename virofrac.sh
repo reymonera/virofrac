@@ -73,7 +73,7 @@ COLOR_COLUMNS=()
 TREE_NET_USED=false
 ANI_USED=false
 GENE_SHARING_USED=false
-NETWORK_THRESHOLD="0.70"
+NETWORK_THRESHOLD="0"
 OUTPUT_DIR=""
 
 while [[ $# -gt 0 ]]; do
@@ -448,8 +448,8 @@ if [[ "$NETWORK_THRESHOLD" != "0.70" ]] && [[ "$GENE_SHARING_USED" == true ]]; t
 fi
 
 # Create output directory if using ANI or gene sharing network method
-if [[ "$ANI_USED" == true ]] && [[ "$GENE_SHARING_USED" == true ]]; then
-    OUTPUT_DIR="$(pwd)/vclust_output"
+if [[ "$ANI_USED" == true ]] || [[ "$GENE_SHARING_USED" == true ]]; then
+    OUTPUT_DIR="$(pwd)/network_output"
     
     if [[ -d "$OUTPUT_DIR" ]]; then
         echo "Warning: Output directory already exists. Cleaning up..."
