@@ -126,6 +126,8 @@ def get_input_network():
     network_method = args.network_method
     
     GlobalTimer.log("✓ Fasta file correctly loaded")
+    GlobalTimer.log("Using threshold:" + " " + threshold)
+
     
     if network_method == 'ani':
         input_network = nc.get_input_ani_network(fasta_file, output_dir, threshold, count_otu_table)
