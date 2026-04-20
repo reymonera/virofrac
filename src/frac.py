@@ -288,12 +288,7 @@ def get_bichromatic_edges(network, community_A, community_B):
         # First: Edge must be relevant (same filter as all_edges)
         if not ((n1_in_A or n1_in_B) and (n2_in_A or n2_in_B)):
             continue
-        
-        # if n1_in_A != n2_in_A or n1_in_B != n2_in_B:
-        #     bichromatic_weights.append(weight)
-        
-        # Original bichromatic cases (A-B, A-AB, B-AB)
-        # PLUS AB-AB (both nodes in both communities)
+
         both_in_both = (n1_in_A and n1_in_B and n2_in_A and n2_in_B)
         original_bichromatic = (n1_in_A != n2_in_A or n1_in_B != n2_in_B)
         
@@ -323,28 +318,11 @@ def get_unweighted_netunifrac(network, community_A, community_B):
     monochromatic_edges = get_monochromatic_edges(network, community_A, community_B)
     all_edges = get_all_weights_from_edges(network, community_A, community_B)
 
-    # Temporal?
-    #bichromatic_edges = get_bichromatic_edges(network, community_A, community_B)
-    #volume_of_sample_A = get_volume_of_first_sample(network, community_A, community_B)
-    #volume_of_sample_B = get_volume_of_first_sample(network, community_B, community_A)
-
-    #sum_bichromatic_similarities = sum(bichromatic_edges)
-    # Temporal?
-
     monochromatic_distances = get_distances_from_edges(monochromatic_edges)
     all_distances = get_distances_from_edges(all_edges)
 
     sum_monochromatic_distances = sum(monochromatic_distances)
     sum_all_distances = sum(all_distances)
-
-    #print("DEBUG: Compairing: ", community_A, " vs. ", community_B)
-    #print(f"bichromatic_edges length: {len(bichromatic_edges)}")
-    #print(f"volume_of_sample_A length: {volume_of_sample_A}")
-    #print(f"Are identical: {bichromatic_edges == volume_of_sample_A}")
-
-    # See first few elements
-    #print(f"bichromatic_edges sum: {sum_bichromatic_similarities}")
-    #print(f"volume_of_sample_A: {volume_of_sample_A}")
 
     if sum_all_distances == 0:
         # No shared structure = maximum distance (completely different communities)
@@ -353,16 +331,6 @@ def get_unweighted_netunifrac(network, community_A, community_B):
     # NetUniFrac
     unweighted_netunifrac = sum_monochromatic_distances/sum_all_distances
     unweighted_netunifrac = len(monochromatic_distances)/len(all_distances)
-
-    # Weighted NetUniFrac
-    #unweighted_netunifrac = get_weighted_netunifrac(network, community_A, community_B)
-
-    # Spectral clustering
-    #if volume_of_sample_A == 0 or volume_of_sample_B == 0:
-        # Si alguna muestra no tiene edges, asumimos máxima separación
-    #    return 1.0
-    #else:
-    #    unweighted_netunifrac = 1-((sum_bichromatic_similarities / volume_of_sample_A + sum_bichromatic_similarities / volume_of_sample_B)*0.5)
 
     return unweighted_netunifrac
 
@@ -406,46 +374,103 @@ def get_weighted_netunifrac(network, community_A, community_B):
     
     return weighted_netunifrac
     
-def get_based_spectral_clustering(network, community_A, community_B):
-    #monochromatic_edges = get_monochromatic_edges(network, community_A, community_B)
-    #all_edges = get_all_weights_from_edges(network, community_A, community_B)
+# def get_based_spectral_clustering_ANTIGUA(network, community_A, community_B):
+#     #monochromatic_edges = get_monochromatic_edges(network, community_A, community_B)
+#     #all_edges = get_all_weights_from_edges(network, community_A, community_B)
 
-    bichromatic_edges = get_bichromatic_edges(network, community_A, community_B)
-    volume_of_sample_A = get_volume_of_first_sample(network, community_A, community_B)
-    volume_of_sample_B = get_volume_of_first_sample(network, community_B, community_A)
+#     bichromatic_edges = get_bichromatic_edges(network, community_A, community_B)
+#     volume_of_sample_A = get_volume_of_first_sample(network, community_A, community_B)
+#     volume_of_sample_B = get_volume_of_first_sample(network, community_B, community_A)
 
-    sum_bichromatic_similarities = sum(bichromatic_edges)
+#     sum_bichromatic_similarities = sum(bichromatic_edges)
 
-    ### DEBUG
-    # Check what community labels actually exist in the network
-    # Check how many nodes belong to each community
-    nodes_in_A = [n for n in network.nodes() if community_A in network.nodes[n].get('communities', {})]
-    nodes_in_B = [n for n in network.nodes() if community_B in network.nodes[n].get('communities', {})]
-    print(f'  Comparing: {community_A} vs {community_B}')
-    print(f'  Nodes in A: {len(nodes_in_A)}, Nodes in B: {len(nodes_in_B)}')
-    print(f'  Overlap (nodes in both): {len(set(nodes_in_A) & set(nodes_in_B))}')
+#     ### DEBUG
+#     # Check what community labels actually exist in the network
+#     # Check how many nodes belong to each community
+#     nodes_in_A = [n for n in network.nodes() if community_A in network.nodes[n].get('communities', {})]
+#     nodes_in_B = [n for n in network.nodes() if community_B in network.nodes[n].get('communities', {})]
+#     # print(f'  Comparing: {community_A} vs {community_B}')
+#     # print(f'  Nodes in A: {len(nodes_in_A)}, Nodes in B: {len(nodes_in_B)}')
+#     # print(f'  Overlap (nodes in both): {len(set(nodes_in_A) & set(nodes_in_B))}')
     
-    bichromatic_edges = get_bichromatic_edges(network, community_A, community_B)
-    volume_of_sample_A = get_volume_of_first_sample(network, community_A, community_B)
-    volume_of_sample_B = get_volume_of_first_sample(network, community_B, community_A)
-    sum_bichromatic_similarities = sum(bichromatic_edges)
+#     bichromatic_edges = get_bichromatic_edges(network, community_A, community_B)
+#     volume_of_sample_A = get_volume_of_first_sample(network, community_A, community_B)
+#     volume_of_sample_B = get_volume_of_first_sample(network, community_B, community_A)
+#     sum_bichromatic_similarities = sum(bichromatic_edges)
     
-    print(f'  Bichromatic: {len(bichromatic_edges)}, sum: {sum_bichromatic_similarities:.6f}')
-    print(f'  Vol A: {volume_of_sample_A:.6f}, Vol B: {volume_of_sample_B:.6f}')
+#     # print(f'  Bichromatic: {len(bichromatic_edges)}, sum: {sum_bichromatic_similarities:.6f}')
+#     # print(f'  Vol A: {volume_of_sample_A:.6f}, Vol B: {volume_of_sample_B:.6f}')
     
-    if volume_of_sample_A == 0 or volume_of_sample_B == 0:
-        based_spectral_clustering = 1.0
-    else:
-        based_spectral_clustering = 1-((sum_bichromatic_similarities / volume_of_sample_A + sum_bichromatic_similarities / volume_of_sample_B)*0.5)
+#     if volume_of_sample_A == 0 or volume_of_sample_B == 0:
+#         based_spectral_clustering = 1.0
+#     else:
+#         based_spectral_clustering = 1-((sum_bichromatic_similarities / volume_of_sample_A + sum_bichromatic_similarities / volume_of_sample_B)*0.5)
     
-    print(f'  SBC: {based_spectral_clustering:.6f}')
-    ### DEBUG
+#     # print(f'  SBC: {based_spectral_clustering:.6f}')
+#     ### DEBUG
 
-    # Spectral clustering
-    if volume_of_sample_A == 0 or volume_of_sample_B == 0:
-        # Si alguna muestra no tiene edges, asumimos máxima separación
-        based_spectral_clustering = 1.0
-    else:
-        based_spectral_clustering = 1-((sum_bichromatic_similarities / volume_of_sample_A + sum_bichromatic_similarities / volume_of_sample_B)*0.5)
+#     # Spectral clustering
+#     if volume_of_sample_A == 0 or volume_of_sample_B == 0:
+#         # Si alguna muestra no tiene edges, asumimos máxima separación
+#         based_spectral_clustering = 1.0
+#     else:
+#         based_spectral_clustering = 1-((sum_bichromatic_similarities / volume_of_sample_A + sum_bichromatic_similarities / volume_of_sample_B)*0.5)
     
-    return based_spectral_clustering
+#     return based_spectral_clustering
+
+# def get_based_spectral_clustering_slow(network, community_A, community_B):
+#     bichromatic_edges = get_bichromatic_edges(network, community_A, community_B)
+#     volume_of_sample_A = get_volume_of_first_sample(network, community_A, community_B)
+#     volume_of_sample_B = get_volume_of_first_sample(network, community_B, community_A)
+#     sum_bichromatic_similarities = sum(bichromatic_edges)
+
+#     if volume_of_sample_A == 0 or volume_of_sample_B == 0:
+#         return 1.0
+
+#     based_spectral_clustering = 1 - ((sum_bichromatic_similarities / volume_of_sample_A 
+#                                      + sum_bichromatic_similarities / volume_of_sample_B) * 0.5)
+#     return based_spectral_clustering
+
+def precompute_edge_data(network):
+    """Precompute per-edge community membership. Called ONCE before the pair loop."""
+    edge_data = []
+    for node1, node2, weight in network.edges(data='weight'):
+        communities_1 = network.nodes[node1].get('communities', {})
+        communities_2 = network.nodes[node2].get('communities', {})
+        edge_data.append((communities_1, communities_2, weight))
+    return edge_data
+
+
+def get_based_spectral_clustering(edge_data, community_A, community_B):
+    sum_bichromatic = 0.0
+    volume_A = 0.0
+    volume_B = 0.0
+
+    for communities_1, communities_2, weight in edge_data:
+        n1_in_A = community_A in communities_1
+        n1_in_B = community_B in communities_1
+        n2_in_A = community_A in communities_2
+        n2_in_B = community_B in communities_2
+
+        # Edge must be relevant
+        if not ((n1_in_A or n1_in_B) and (n2_in_A or n2_in_B)):
+            continue
+
+        # Volume A: at least one node in A
+        if n1_in_A or n2_in_A:
+            volume_A += weight
+
+        # Volume B: at least one node in B
+        if n1_in_B or n2_in_B:
+            volume_B += weight
+
+        # Bichromatic: nodes differ in membership, or both in both
+        both_in_both = (n1_in_A and n1_in_B and n2_in_A and n2_in_B)
+        original_bichromatic = (n1_in_A != n2_in_A or n1_in_B != n2_in_B)
+        if original_bichromatic or both_in_both:
+            sum_bichromatic += weight
+
+    if volume_A == 0 or volume_B == 0:
+        return 1.0
+
+    return 1 - ((sum_bichromatic / volume_A + sum_bichromatic / volume_B) * 0.5)

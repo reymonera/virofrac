@@ -232,11 +232,11 @@ def get_gene_sharing_network_vcontact2(input_fasta, output_dir):
     )
 
     # Normalize weights
-    #weights = nx.get_edge_attributes(G, 'weight')
-    #total_weight = sum(weights.values())
-    #if total_weight > 0:
-    #    normalized = {edge: w / total_weight for edge, w in weights.items()}
-    #    nx.set_edge_attributes(G, normalized, 'weight')
+    weights = nx.get_edge_attributes(network, 'weight')
+    total_weight = sum(weights.values())
+    if total_weight > 0:
+        normalized = {edge: w / total_weight for edge, w in weights.items()}
+        nx.set_edge_attributes(network, normalized, 'weight')
 
     return network
 
