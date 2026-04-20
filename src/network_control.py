@@ -134,18 +134,16 @@ def get_gene_sharing_network_vcontact3(input_fasta, output_dir):
 
     return network
 
-def process_sequence(header, seq, faa):
-    protein_count = 0
-    gene_finder = pyrodigal.GeneFinder(meta=True)
-    genome_proteins = {}
-
-    if not header or not seq:
-        return
+def get_protein_prediction(header, sequence, faa, gene_finder, genome_proteins):
     
+    if not header or not sequence:
+        return 0
+
     genome_id = header.split()[0]
-    full_seq = ''.join(seq)
+    full_seq = ''.join(sequence)
     genes = gene_finder.find_genes(full_seq.encode())
     genome_proteins[genome_id] = set()
+    protein_count = 0
 
     for i, gene in enumerate(genes):
         protein_id = f"{genome_id}_{i+1}"
@@ -153,9 +151,7 @@ def process_sequence(header, seq, faa):
         faa.write(f">{protein_id}\n{gene.translate()}\n")
         protein_count += 1
     
-    GlobalTimer.log(f"Predicted {protein_count} proteins from {len(genome_proteins)} genomes.")
-    #return(genome_proteins)
-
+    return protein_count
 
 def get_gene_sharing_network_vcontact2(input_fasta, output_dir):
     output_dir = Path(output_dir)
@@ -166,29 +162,30 @@ def get_gene_sharing_network_vcontact2(input_fasta, output_dir):
 
     # Step 1: Predict proteins with Pyrodigal (meta mode for metagenomes)
     GlobalTimer.log("Predicting proteins with Pyrodigal...")
-    #gene_finder = pyrodigal.GeneFinder(meta=True)
-    #genome_proteins = {}  # genome_id -> set of protein_ids
+    gene_finder = pyrodigal.GeneFinder(meta=True)
+    genome_proteins = {}  # genome_id -> set of protein_ids
+    total_proteins = 0
     #protein_count = 0
 
     with open(protein_fasta, 'w') as faa:
         current_header = None
         current_seq = []
         
-        process_sequence(current_header, current_seq, faa)
+        #get_protein_prediction(current_header, current_seq, faa)
 
         with open(input_fasta, 'r') as f:
             for line in f:
                 line = line.strip()
                 if line.startswith('>'):
-                    process_sequence(current_header, current_seq, faa)
+                    total_proteins += get_protein_prediction(current_header, current_seq, faa, gene_finder, genome_proteins)
                     current_header = line[1:]
                     current_seq = []
                 else:
                     current_seq.append(line)
 
-            process_sequence(current_header, current_seq, faa)
+            total_proteins += get_protein_prediction(current_header, current_seq, faa, gene_finder, genome_proteins)
 
-    #GlobalTimer.log(f"Predicted {protein_count} proteins from {len(genome_proteins)} genomes.")
+    GlobalTimer.log(f"Predicted {total_proteins} proteins from {len(genome_proteins)} genomes.")
 
     # Step 2: Cluster proteins with Diamond linclust (fast, low RAM)
     GlobalTimer.log("Clustering proteins with Diamond linclust...")
@@ -202,50 +199,28 @@ def get_gene_sharing_network_vcontact2(input_fasta, output_dir):
         '--header'
     ], check=True)
 
-    # Step 3: Parse clusters and map proteins back to genomes
+    # Step 3: Parse clusters into a DataFrame
     GlobalTimer.log("Building gene sharing network from protein clusters...")
 
-    # Build protein -> cluster representative mapping
-    protein_to_cluster = {}
-    with open(cluster_out, 'r') as f:
-        for line in f:
-            if line.startswith('#'):
-                continue
-            parts = line.strip().split('\t')
-            if len(parts) < 2:
-                continue
-            representative, member = parts[0], parts[1]
-            protein_to_cluster[member] = representative
+    clusters = pd.read_csv(cluster_out, sep='\t', comment='#', header=None, names=['representative', 'member'])
+    clusters['genome'] = clusters['member'].str.rsplit('_', n=1).str[0]
 
-    # Build cluster -> set of genomes mapping
-    cluster_to_genomes = {}
-    for genome_id, proteins in genome_proteins.items():
-        for protein_id in proteins:
-            cluster = protein_to_cluster.get(protein_id)
-            if cluster is not None:
-                cluster_to_genomes.setdefault(cluster, set()).add(genome_id)
-
-    # Step 4: Build the network — two genomes share an edge if they share PCs
-    # Weight = number of shared protein clusters
-    edge_weights = {}
-    for cluster, genomes in cluster_to_genomes.items():
-        if len(genomes) < 2:
-            continue
-        genome_list = list(genomes)
-        for i in range(len(genome_list)):
-            for j in range(i + 1, len(genome_list)):
-                key = tuple(sorted((genome_list[i], genome_list[j])))
-                edge_weights[key] = edge_weights.get(key, 0) + 1
+    # Build genome-pair edge weights using merge (self-join on cluster)
+    genome_clusters = clusters[['representative', 'genome']].drop_duplicates()
+    pairs = genome_clusters.merge(genome_clusters, on='representative', suffixes=('_a', '_b'))
+    pairs = pairs[pairs['genome_a'] < pairs['genome_b']]
+    edge_weights = pairs.groupby(['genome_a', 'genome_b']).size().reset_index(name='weight')
 
     # Build the graph
     network = nx.Graph()
-    network.add_nodes_from(genome_proteins.keys())
-    for (a, b), w in edge_weights.items():
-        network.add_edge(a, b, weight=float(w))
+    network.add_nodes_from(clusters['genome'].unique())
+    for _, row in edge_weights.iterrows():
+        network.add_edge(row['genome_a'], row['genome_b'], weight=float(row['weight']))
 
+    del clusters
+    del genome_clusters
+    del pairs
     del edge_weights
-    del cluster_to_genomes
-    del protein_to_cluster
 
     # Report network structure
     n_components = nx.number_connected_components(network)
