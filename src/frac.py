@@ -231,8 +231,6 @@ def get_all_weights_from_edges(network, community_A, community_B):
             all_weights.append(weight)
     
     return all_weights
-# Debería de retornar una lista [0.5, 1.2, 0.8]
-# Solo ejes de esa comparación de pares
 
 # Get volume for any imput community, which is always the first one
 def get_volume_of_first_sample(network, community_A, community_B):            
@@ -431,16 +429,21 @@ def get_weighted_netunifrac(network, community_A, community_B):
 #                                      + sum_bichromatic_similarities / volume_of_sample_B) * 0.5)
 #     return based_spectral_clustering
 
-def precompute_edge_data(network):
-    """Precompute per-edge community membership. Called ONCE before the pair loop."""
+# This function assigns the community data to each edge before their processing.
+# This solution evades the future bottleneck for the get_based_spectral_clustering
+# function. 
+def put_edge_community_data(network):
     edge_data = []
     for node1, node2, weight in network.edges(data='weight'):
         communities_1 = network.nodes[node1].get('communities', {})
         communities_2 = network.nodes[node2].get('communities', {})
         edge_data.append((communities_1, communities_2, weight))
+
     return edge_data
 
-
+# This function performs a distance based on spectral clustering. It
+# requires similarity instead of distance as an input. If the denominator
+# is equal to 0, then it will automatically return 1.
 def get_based_spectral_clustering(edge_data, community_A, community_B):
     sum_bichromatic = 0.0
     volume_A = 0.0

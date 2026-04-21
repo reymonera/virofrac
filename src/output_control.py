@@ -120,7 +120,7 @@ def get_net_frac_matrix_output(network, distance_type, count_table):
 
     # Precompute once
     if distance_type == 'spectral clustering':
-        edge_data = frac.precompute_edge_data(network)
+        edge_data = frac.put_edge_community_data(network)
 
     for (i, j) in tqdm(combinations(range(n), 2),
                         total=total_pairs,
