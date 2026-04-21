@@ -132,7 +132,7 @@ def get_input_network():
         input_network = nc.get_input_ani_network(fasta_file, output_dir, threshold, count_otu_table)
         return input_network
     elif network_method == 'gene-sharing':
-        input_network = nc.get_input_vcontact3_network(fasta_file, output_dir, count_otu_table)
+        input_network = nc.get_input_gene_sharing_network(fasta_file, output_dir, count_otu_table)
         return input_network
     
 

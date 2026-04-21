@@ -2,9 +2,9 @@ import subprocess
 import networkx as nx
 import numpy as np
 import pandas as pd
-import glob
+#import glob
 from src.utils import GlobalTimer
-import shutil
+#import shutil
 from pathlib import Path
 import pyrodigal
 
@@ -92,47 +92,44 @@ def get_ani_matrix_vclust(input_fasta, output_dir):
 # Contrary to vClust, vConTACT3 will work better
 # producing the network instead of doing a matrix and
 # then producing the network.
-def get_gene_sharing_network_vcontact3(input_fasta, output_dir):
-    GlobalTimer.log("Building network sponsored by vConTACT3...")
-    GlobalTimer.log("vConTACT3 is now searching for its database...")
+# def get_gene_sharing_network_vcontact3(input_fasta, output_dir):
+#     GlobalTimer.log("Building network sponsored by vConTACT3...")
+#     GlobalTimer.log("vConTACT3 is now searching for its database...")
 
-    vcontact3_path = Path(shutil.which('vcontact3')) #Acá es para buscar vcontact3
-    db_path = vcontact3_path.parent.parent / 'db' / 'vcontact3' #Sube 2 niveles, porque aquí están las DB normalmente
-    db_path.mkdir(parents=True, exist_ok=True)
+#     vcontact3_path = Path(shutil.which('vcontact3')) #Acá es para buscar vcontact3
+#     db_path = vcontact3_path.parent.parent / 'db' / 'vcontact3' #Sube 2 niveles, porque aquí están las DB normalmente
+#     db_path.mkdir(parents=True, exist_ok=True)
 
-    existing_versions = list(db_path.glob('*.json'))
-    if existing_versions:
-        GlobalTimer.log(f"vConTACT3 database found, skipping download.")
-    else:
-        GlobalTimer.log("vConTACT3 database not found, downloading latest version...")
-        subprocess.run([
-            'vcontact3', 'prepare_databases',
-            '--get-version', 'latest',
-            '--set-location', str(db_path)
-        ], check=True)
+#     existing_versions = list(db_path.glob('*.json'))
+#     if existing_versions:
+#         GlobalTimer.log(f"vConTACT3 database found, skipping download.")
+#     else:
+#         GlobalTimer.log("vConTACT3 database not found, downloading latest version...")
+#         subprocess.run([
+#             'vcontact3', 'prepare_databases',
+#             '--get-version', 'latest',
+#             '--set-location', str(db_path)
+#         ], check=True)
 
-    subprocess.run([
-        'vcontact3', 'run',
-        '--nucleotide', input_fasta,
-        '--output', output_dir,
-        '--db-path', str(db_path),
-        '--exports', 'graphml'
-    ], check=True)
-    
-    #network_file = glob.glob(f'{output_dir}/*.graphml')[0]
-    #network = nx.read_graphml(network_file)
+#     subprocess.run([
+#         'vcontact3', 'run',
+#         '--nucleotide', input_fasta,
+#         '--output', output_dir,
+#         '--db-path', str(db_path),
+#         '--exports', 'graphml'
+#     ], check=True)
 
-    network_files = list(Path(output_dir).rglob('exports/networks/part*.graphml'))
-    graphs = [nx.read_graphml(str(f)) for f in network_files]
-    network = nx.compose_all(graphs)
+#     network_files = list(Path(output_dir).rglob('exports/networks/part*.graphml'))
+#     graphs = [nx.read_graphml(str(f)) for f in network_files]
+#     network = nx.compose_all(graphs)
 
-    # Normalization before using as an input
-    gene_sharing_weights = nx.get_edge_attributes(network, 'weight')
-    total_weight = sum(gene_sharing_weights.values())
-    normalized_weights = {edge: w / total_weight for edge, w in gene_sharing_weights.items()}
-    nx.set_edge_attributes(network, normalized_weights, 'weight')
+#     # Normalization before using as an input
+#     gene_sharing_weights = nx.get_edge_attributes(network, 'weight')
+#     total_weight = sum(gene_sharing_weights.values())
+#     normalized_weights = {edge: w / total_weight for edge, w in gene_sharing_weights.items()}
+#     nx.set_edge_attributes(network, normalized_weights, 'weight')
 
-    return network
+#     return network
 
 def get_protein_prediction(header, sequence, faa, gene_finder, genome_proteins):
     
@@ -153,7 +150,7 @@ def get_protein_prediction(header, sequence, faa, gene_finder, genome_proteins):
     
     return protein_count
 
-def get_gene_sharing_network_vcontact2(input_fasta, output_dir):
+def get_gene_sharing_network(input_fasta, output_dir):
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -165,14 +162,11 @@ def get_gene_sharing_network_vcontact2(input_fasta, output_dir):
     gene_finder = pyrodigal.GeneFinder(meta=True)
     genome_proteins = {}  # genome_id -> set of protein_ids
     total_proteins = 0
-    #protein_count = 0
 
     with open(protein_fasta, 'w') as faa:
         current_header = None
         current_seq = []
         
-        #get_protein_prediction(current_header, current_seq, faa)
-
         with open(input_fasta, 'r') as f:
             for line in f:
                 line = line.strip()
@@ -187,14 +181,14 @@ def get_gene_sharing_network_vcontact2(input_fasta, output_dir):
 
     GlobalTimer.log(f"Predicted {total_proteins} proteins from {len(genome_proteins)} genomes.")
 
-    # Step 2: Cluster proteins with Diamond linclust (fast, low RAM)
-    GlobalTimer.log("Clustering proteins with Diamond linclust...")
+    # Step 2: Cluster proteins with Diamond linclust (linear scaling, fast, low RAM)
+    GlobalTimer.log("Clustering proteins with Diamond linear scaling...")
     subprocess.run([
         'diamond', 'linclust',
         '-d', str(protein_fasta),
         '-o', str(cluster_out),
-        '--approx-id', '30',
-        '--member-cover', '80',
+        '--approx-id', '30', #30% AA identity
+        '--member-cover', '80', #80% of coverage
         '-M', '8G',
         '--header'
     ], check=True)
@@ -308,9 +302,9 @@ def get_input_ani_network(input_fasta, output_dir, threshold, count_table):
 
     return input_network
 
-def get_input_vcontact3_network(input_fasta, output_dir, count_table):
+def get_input_gene_sharing_network(input_fasta, output_dir, count_table):
 
-    network = get_gene_sharing_network_vcontact2(input_fasta, output_dir)
+    network = get_gene_sharing_network(input_fasta, output_dir)
     print("==AQUI ENTRA EL NETWORK==")
     print(network)
     input_network = set_community_atribute_on_nodes(network, count_table)

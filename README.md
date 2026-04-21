@@ -1,22 +1,20 @@
 # <img src="./img/virofrac_min_logo.png" alt="ViroFrac logo" width="40" /> ViroFrac
 
-The ViroFrac pipeline is a software package for estimating distances between viral communities using UniFrac-based approaches.
+ViroFrac is a software package for estimating distances between viral communities using genome similarity information.
 
 ## Features
 
 ### Relatedness methods
 
-ViroFrac offers 3 approaches for establihing relationships between viral OTUs:
+ViroFrac offers 2 approaches for establishing relationships between viral OTUs:
 
 #### Taxonomic tree
 
-Builds a hierarchical tree based on the ICTV taxonomy. For this, the tool uses a background reference tree containing all the ICTV-recognized taxa (v. ).
+Builds a hierarchical tree based on the ICTV taxonomy. For this, the tool uses a background reference tree containing all the ICTV-recognized taxa (VMR MSL40).
 
 #### Network
 
-Builds a similarity network between contigs. Networks can be built using vClust (v. ) and vConTACT (v. ).
-
-#### Custom tree
+Builds a similarity network between contigs. Networks can be built using ANI-based distance with vClust (v1.3.1) and gene-sharing based distance with Pyrodigal (v3.7.0) and DIAMOND (v2.1.15.169).
 
 ### Output
 
@@ -34,10 +32,6 @@ Sample2 0.245      0.000      0.543
 Sample3 0.678      0.543      0.000
 ```
 
-#### Tree/Network
-
-When the taxonomic tree option is selected, ViroFrac outputs the pruned phylogenetic tree used for calculations (`otu_tree.newick`). This tree is derived from the ICTV hierarchical classification and only includes the viral taxa present in your dataset.
-
 #### Heatmap
 
 A heatmap is the graphical output provided by ViroFrac. The heatmap function uses the seaborn package for visualization.
@@ -46,7 +40,7 @@ A heatmap is the graphical output provided by ViroFrac. The heatmap function use
 
 ## Usage
 ```
-bash virofrac.sh --fasta uhgv/subset_votus_renamed.fna --otu-table uhgv/subset_count_votus.tsv --network --ani --threshold 0 -uu -m uhgv/country_metadata.tsv -l continent -c color_continent -g viridis
+bash virofrac.sh --fasta uhgv/subset_votus_renamed.fna --otu-table uhgv/subset_count_votus.tsv --network --ani --threshold 0 -u -m uhgv/country_metadata.tsv -l continent -c color_continent -g viridis
 ```
 
 ## Documentation
