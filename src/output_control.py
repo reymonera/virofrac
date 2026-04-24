@@ -79,38 +79,6 @@ def get_frac_matrix_output(otu_df, tree, distance_type):
     
     return pd.DataFrame(matrix, index=sample_names, columns=sample_names)
 
-# This function is managing the comparisons necessary
-# for the matrix output. For this, the function first
-# calculates the size of the matrix and then builds
-# the matrix based on the selected distance.
-# def get_net_frac_matrix_output_ANTIGUO(network, distance_type, count_table):
-#     count_table = count_table.set_index(count_table.columns[0])
-#     sample_names = count_table.columns.tolist()
-#     n = len(sample_names)
-#     total_pairs = n * (n - 1) // 2
-    
-#     matrix = np.zeros((n, n))
-   
-#     for (i, j) in tqdm(combinations(range(n), 2), 
-#                        total=total_pairs,
-#                        desc=f"[{GlobalTimer.elapsed():7.2f}s] Brewing UniFrac",
-#                        unit="pairs"):
-
-#         sample_i = sample_names[i]
-#         sample_j = sample_names[j]
-        
-#         if distance_type == 'normalized weighted unifrac':
-#             distance = frac.get_weighted_netunifrac(network, sample_i, sample_j)
-#         elif distance_type == 'spectral clustering':
-#             distance = frac.get_based_spectral_clustering(network, sample_i, sample_j)
-#         else:
-#             distance = frac.get_unweighted_netunifrac(network, sample_i, sample_j)
-        
-#         matrix[i, j] = distance
-#         matrix[j, i] = distance
-
-#     return pd.DataFrame(matrix, index=sample_names, columns=sample_names)
-
 def get_net_frac_matrix_output(network, distance_type, count_table):
     count_table = count_table.set_index(count_table.columns[0])
     sample_names = count_table.columns.tolist()
@@ -304,7 +272,6 @@ def add_significance_labels_to_heatmap(g, row_linkage, labels, metadata, legend_
         )
 
 # --- FIN DE FUNCIONES AGREGADAS ---
-
 
 # This function controls the heatmap output. There are two 
 # options: When there is no metadata input and when there 

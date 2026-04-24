@@ -89,48 +89,6 @@ def get_ani_matrix_vclust(input_fasta, output_dir):
 
     return matrix
 
-# Contrary to vClust, vConTACT3 will work better
-# producing the network instead of doing a matrix and
-# then producing the network.
-# def get_gene_sharing_network_vcontact3(input_fasta, output_dir):
-#     GlobalTimer.log("Building network sponsored by vConTACT3...")
-#     GlobalTimer.log("vConTACT3 is now searching for its database...")
-
-#     vcontact3_path = Path(shutil.which('vcontact3')) #Acá es para buscar vcontact3
-#     db_path = vcontact3_path.parent.parent / 'db' / 'vcontact3' #Sube 2 niveles, porque aquí están las DB normalmente
-#     db_path.mkdir(parents=True, exist_ok=True)
-
-#     existing_versions = list(db_path.glob('*.json'))
-#     if existing_versions:
-#         GlobalTimer.log(f"vConTACT3 database found, skipping download.")
-#     else:
-#         GlobalTimer.log("vConTACT3 database not found, downloading latest version...")
-#         subprocess.run([
-#             'vcontact3', 'prepare_databases',
-#             '--get-version', 'latest',
-#             '--set-location', str(db_path)
-#         ], check=True)
-
-#     subprocess.run([
-#         'vcontact3', 'run',
-#         '--nucleotide', input_fasta,
-#         '--output', output_dir,
-#         '--db-path', str(db_path),
-#         '--exports', 'graphml'
-#     ], check=True)
-
-#     network_files = list(Path(output_dir).rglob('exports/networks/part*.graphml'))
-#     graphs = [nx.read_graphml(str(f)) for f in network_files]
-#     network = nx.compose_all(graphs)
-
-#     # Normalization before using as an input
-#     gene_sharing_weights = nx.get_edge_attributes(network, 'weight')
-#     total_weight = sum(gene_sharing_weights.values())
-#     normalized_weights = {edge: w / total_weight for edge, w in gene_sharing_weights.items()}
-#     nx.set_edge_attributes(network, normalized_weights, 'weight')
-
-#     return network
-
 def get_protein_prediction(header, sequence, faa, gene_finder, genome_proteins):
     
     if not header or not sequence:
@@ -225,11 +183,20 @@ def get_gene_sharing_network(input_fasta, output_dir):
         f"{n_components} connected components, {isolated} isolated nodes."
     )
 
-    # Normalize weights
+    # Normalize edge weights
+
+    # Total weight
+    # weights = nx.get_edge_attributes(network, 'weight')
+    # total_weight = sum(weights.values())
+    # if total_weight > 0:
+    #     normalized = {edge: w / total_weight for edge, w in weights.items()}
+    #     nx.set_edge_attributes(network, normalized, 'weight')
+
+    # Edge / Max edge in network
     weights = nx.get_edge_attributes(network, 'weight')
-    total_weight = sum(weights.values())
-    if total_weight > 0:
-        normalized = {edge: w / total_weight for edge, w in weights.items()}
+    max_weight = max(weights.values())
+    if max_weight > 0:
+        normalized = {edge: w / max_weight for edge, w in weights.items()}
         nx.set_edge_attributes(network, normalized, 'weight')
 
     return network
@@ -299,14 +266,16 @@ def get_input_ani_network(input_fasta, output_dir, threshold, count_table):
     
     # Add community attributes
     input_network = set_community_atribute_on_nodes(network, count_table)
+    GlobalTimer.log("Input: ANI network")
 
     return input_network
 
 def get_input_gene_sharing_network(input_fasta, output_dir, count_table):
 
     network = get_gene_sharing_network(input_fasta, output_dir)
-    print("==AQUI ENTRA EL NETWORK==")
-    print(network)
+    #print("==AQUI ENTRA EL NETWORK==")
+    #print(network)
+    GlobalTimer.log("Input: Gene-sharing network")
     input_network = set_community_atribute_on_nodes(network, count_table)
     
     return input_network
