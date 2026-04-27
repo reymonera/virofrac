@@ -2,9 +2,7 @@ import subprocess
 import networkx as nx
 import numpy as np
 import pandas as pd
-#import glob
 from src.utils import GlobalTimer
-#import shutil
 from pathlib import Path
 import pyrodigal
 
