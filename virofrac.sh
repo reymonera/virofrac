@@ -34,20 +34,20 @@ if [[ $# -eq 0 ]]; then
     echo ""
     echo "Tree options:"
     echo "  -x, --tax-tree                         Selects the taxonomic tree mode"
-    echo "  -p, --phy-tree [file]                  Selects the phylogenetic tree option [.newick]"
+    echo "  -i, --ani-tree [file]                  Selects the ANI tree option"
     echo ""
     echo "Network options:"
     echo "  -n, --network                          Selects network option"
-    echo "  -a, --ani                              Selects ANI based network option (works wth vclust)"
-    echo "  -g, --gene-sharing                     Selects gene-sharing based network option (works wth vcontact3)"
-    echo "  -b, --threshold [value]                Selects a threshold for the network-based clustering. Default: 0.70"
+    echo "  -a, --ani                              Selects ANI based network option (works wth vClust)"
+    echo "  -g, --gene-sharing                     Selects gene-sharing based network option (works wth DIAMOND + PyRodigal)"
+    echo "  -b, --threshold [value]                Selects a threshold for the network-based clustering. Default: 0"
     echo ""
     echo "Metadata/Plot options:"
     echo "  -m, --metadata [file]                  A metadata file used for the final heatmap plot. If not used, it will output a default plot. [.tsv|.csv|.tab|.tabular]"
     echo "  -l, --legend-column [column_name]      This will apply color strips and a legend to the final heatmap plot. Requires a specified color column."
     echo "  -c, --color-column [column_name]       If used, the script will apply the colors in the selected column. Requires a specified legend column."
     echo "                                         NOTE: Specify the legend columns and then the color columns. The script will use the corresponding order."
-    echo "  -r, --color-gradient [string]          Deafult: 'coolwarm'. When used, user can specify another gradient or a custom gradient using hexacode"
+    echo "  -r, --color-gradient [string]          Default: 'coolwarm'. When used, user can specify another gradient or a custom gradient using hexacode"
     echo ""
     echo "Output options:"
     echo "  -d, --output-directory [directory]     Defines an output directory."
@@ -57,7 +57,7 @@ fi
 
 # Tree multiple flags detection
 TREE_TAX_USED=false
-TREE_PHY_USED=false
+TREE_ANI_USED=false
 
 # UniFrac flags detection
 UNIFRAC_UU_USED=false
@@ -74,6 +74,7 @@ TREE_NET_USED=false
 ANI_USED=false
 GENE_SHARING_USED=false
 NETWORK_THRESHOLD="0"
+THRESHOLD_USED=false
 OUTPUT_DIR=""
 
 while [[ $# -gt 0 ]]; do
@@ -108,14 +109,9 @@ while [[ $# -gt 0 ]]; do
             TREE_TYPE="taxonomic"
             shift
             ;;
-        -p|--phy-tree)
-            if [[ -z "${2:-}" ]]; then
-                echo "Error: -pt/--phy_tree requires a phylogenetic tree file"
-                exit 1
-            fi
-            PHY_TREE_FILE="$2"
-            TREE_PHY_USED=true
-            TREE_TYPE="phylogenetic"
+        -i|--ani-tree)
+            TREE_ANI_USED=true
+            TREE_TYPE="ani"
             shift 2
             ;;
         # UniFrac/Distance metrics flags
@@ -161,6 +157,7 @@ while [[ $# -gt 0 ]]; do
                 exit 1
             fi
             NETWORK_THRESHOLD="$2"
+            THRESHOLD_USED=true
             shift 2
             ;;
         # Metadata - Plot Output flags
@@ -219,20 +216,20 @@ while [[ $# -gt 0 ]]; do
             echo ""
             echo "Tree options:"
             echo "  -x, --tax-tree                         Selects the taxonomic tree mode"
-            echo "  -p, --phy-tree [file]                  Selects the phylogenetic tree option [.newick]"
+            echo "  -i, --ani-tree [file]                  Selects the ANI tree option"
             echo ""
             echo "Network options:"
             echo "  -n, --network                          Selects network option"
-            echo "  -a, --ani                              Selects ANI based network option (works wth vclust)"
-            echo "  -g, --gene-sharing                     Selects gene-sharing based network option (works wth vcontact3)"
-            echo "  -b, --threshold [value]                Selects a threshold for the network-based clustering. Default: 0.70"
+            echo "  -a, --ani                              Selects ANI based network option (works wth vClust)"
+            echo "  -g, --gene-sharing                     Selects gene-sharing based network option (works wth DIAMOND + PyRodigal)"
+            echo "  -b, --threshold [value]                Selects a threshold for the network-based clustering. Default: 0"
             echo ""
             echo "Metadata/Plot options:"
             echo "  -m, --metadata [file]                  A metadata file used for the final heatmap plot. If not used, it will output a default plot. [.tsv|.csv|.tab|.tabular]"
             echo "  -l, --legend-column [column_name]      This will apply color strips and a legend to the final heatmap plot. Requires a specified color column."
             echo "  -c, --color-column [column_name]       If used, the script will apply the colors in the selected column. Requires a specified legend column."
             echo "                                         NOTE: Specify the legend columns and then the color columns. The script will use the corresponding order."
-            echo "  -r, --color-gradient [string]          Deafult: 'coolwarm'. When used, user can specify another gradient or a custom gradient using hexacode"
+            echo "  -r, --color-gradient [string]          Default: 'coolwarm'. When used, user can specify another gradient or a custom gradient using hexacode"
             echo ""
             echo "Output options:"
             echo "  -d, --output-directory [directory]     Defines an output directory."
@@ -304,16 +301,16 @@ fi
 # User will only be able to select one type of tree.
 TREE_OPTIONS=0
 [[ "$TREE_TAX_USED" == true ]] && ((TREE_OPTIONS++))
-[[ "$TREE_PHY_USED" == true ]] && ((TREE_OPTIONS++))
+[[ "$TREE_ANI_USED" == true ]] && ((TREE_OPTIONS++))
 [[ "$TREE_NET_USED" == true ]] && ((TREE_OPTIONS++))
 
 if [[ $TREE_OPTIONS -gt 1 ]]; then
     echo "Error: Only one tree type can be selected"
     echo ""
     echo "You used multiple tree options:"
-    [[ "$TREE_TAX_USED" == true ]] && echo "  • -tt/--tax-tree (taxonomic)"
-    [[ "$TREE_PHY_USED" == true ]] && echo "  • -uw/--phy-tree (phylogenetic)"
-    [[ "$TREE_NET_USED" == true ]] && echo "  • -nw/--network (network)"
+    [[ "$TREE_TAX_USED" == true ]] && echo "  • --tax-tree (taxonomic)"
+    [[ "$TREE_ANI_USED" == true ]] && echo "  • --ani-tree (ANI-based tree)"
+    [[ "$TREE_NET_USED" == true ]] && echo "  • --network (network)"
     echo ""
     echo "Please select only ONE tree type."
     exit 1
@@ -322,31 +319,27 @@ fi
 # --------------------------------------
 #      MUTUALLY UNIFRAC TYPES
 # --------------------------------------
-UNIFRAC_OPTIONS=0
-[[ "$UNIFRAC_UU_USED" == true ]] && ((UNIFRAC_OPTIONS++))
-[[ "$UNIFRAC_UW_USED" == true ]] && ((UNIFRAC_OPTIONS++))
-[[ "$UNIFRAC_NW_USED" == true ]] && ((UNIFRAC_OPTIONS++))
-[[ "$SPECTRAL_CLUSTERING_USED" == true ]] && ((UNIFRAC_OPTIONS++))
+DISTANCE_OPTIONS=0
+[[ "$UNIFRAC_UU_USED" == true ]] && ((DISTANCE_OPTIONS++))
+[[ "$UNIFRAC_UW_USED" == true ]] && ((DISTANCE_OPTIONS++))
+[[ "$UNIFRAC_NW_USED" == true ]] && ((DISTANCE_OPTIONS++))
+[[ "$SPECTRAL_CLUSTERING_USED" == true ]] && ((DISTANCE_OPTIONS++))
 
-if [[ $UNIFRAC_OPTIONS -gt 1 ]]; then
-    echo "Error: Only one UniFrac type can be selected"
+if [[ $DISTANCE_OPTIONS -gt 1 ]]; then
+    echo "Error: Only one distance type can be selected"
     echo ""
-    echo "You used multiple UniFrac options:"
-    [[ "$UNIFRAC_UU_USED" == true ]] && echo "  • -uu/--unweighted-unifrac"
+    echo "You used multiple distance options:"
+    [[ "$UNIFRAC_UU_USED" == true ]] && echo "  • -u/--unweighted-unifrac"
     [[ "$UNIFRAC_UW_USED" == true ]] && echo "  • -z/--unnormalized-weighted-unifrac"
-    [[ "$UNIFRAC_NW_USED" == true ]] && echo "  • -nw/--normalized-weighted-unifrac"
+    [[ "$UNIFRAC_NW_USED" == true ]] && echo "  • -w/--normalized-weighted-unifrac"
+    [[ "$SPECTRAL_CLUSTERING_USED" == true ]] && echo "  • -s/--based-spectral-clustering"
     echo ""
-    echo "Please select only ONE UniFrac type."
+    echo "Please select only ONE distance type."
     exit 1
 fi
 
-if [[ $UNIFRAC_OPTIONS -eq 0 ]]; then
-    echo "Error: Must provide a UniFrac distance type"
-    echo ""
-    echo "Choose one:"
-    echo "  • -uu/--unweighted-unifrac"
-    echo "  • -z/--unnormalized-weighted-unifrac"
-    echo "  • -nw/--normalized-weighted-unifrac"
+if [[ $DISTANCE_OPTIONS -eq 0 ]]; then
+    echo "Error: Must provide a distance type"
     exit 1
 fi
 
@@ -409,7 +402,7 @@ if [[ "$TREE_NET_USED" == true ]]; then
 fi
 
 # Threshold only makes sense with network mode
-if [[ "$NETWORK_THRESHOLD" != "0.70" ]] && [[ "$TREE_NET_USED" != true ]]; then
+if [[ "$THRESHOLD_USED" == true ]] && [[ "$TREE_NET_USED" != true ]]; then
     echo "Error: --threshold requires -nt/--network"
     echo "Usage: -nt --ani --threshold [value]"
     exit 1
