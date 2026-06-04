@@ -41,6 +41,10 @@ def get_validation_otu_table(filepath):
         GlobalTimer.log(f"✕ Error validation OTU Table: {e}")
         sys.exit(1)
 
+# This function evaluates the OTU table. First, it identifies the
+# first column as an id column, and then proceeds to evaluate if
+# the values are empty or numeric. Then, i determines if the
+# column values are numeric or non-numeric.
 def get_validation_tax_table(filepath):
     try:
         with open(filepath, 'r') as f:
@@ -56,28 +60,28 @@ def get_validation_tax_table(filepath):
             raise ValueError("Cannot detect separator (expected tab or comma)")
         
         df = pd.read_csv(filepath, sep=separator)
-        otu_col = None
-        
-        otu_col_candidates = ['#OTU ID', 'OTU ID', 'OTU_ID', '#OTU_ID', 'OTUID', 'otu_id']
-        for candidate in otu_col_candidates:
-            if candidate in df.columns:
-                otu_col = candidate
-                break
-        
-        if otu_col is None:
-            raise ValueError(f"Tax table missing OTU ID column. Expected one of: {otu_col_candidates}")
+        if df.shape[1] < 2:
+            raise ValueError("Tax table needs an ID column and at least one numeric column")
 
-        sample_cols = [col for col in df.columns if col != otu_col]
-        if len(sample_cols) <= 1:
-            raise ValueError("Tax table has no taxonomic columns")
-        
-        df = pd.read_csv(filepath, sep=separator)
+        otu_col = df.columns[0]
+        ids = df[otu_col]
+
+        if ids.isnull().any():
+            raise ValueError(f"ID column '{otu_col}' contains empty values")
+        if pd.to_numeric(ids, errors='coerce').notnull().all():
+            raise ValueError(f"First column '{otu_col}' looks numeric; expected text IDs")
+
+        for col in df.columns[1:]:
+            coerced = pd.to_numeric(df[col], errors='coerce')
+            bad = coerced.isnull() & df[col].notnull()
+            if bad.any():
+                rows = df.index[bad].tolist()[:5]
+                raise ValueError(f"Column '{col}' has non-numeric values at rows {rows}")
+
         GlobalTimer.log("✓ Tax table validated")
-        #print("✓ Tax table validated")
     
     except Exception as e:
-        GlobalTimer.log("✕ Error validation Tax Table: {e}")
-        #print("✕ Error validation Tax Table: {e}")
+        GlobalTimer.log(f"✕ Error validation Tax Table: {e}")
         sys.exit(1)
 
 def get_validation_fasta_file(filepath):
