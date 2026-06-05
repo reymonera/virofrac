@@ -200,12 +200,17 @@ def get_otu_tree(otu_tax_table):
     return tree
 
 def get_ani_tree(fasta_file, output_dir):
-    ani_matrix = net_control.get_ani_matrix_vclust(fasta_file, output_dir)
-    
-    distance = 1.0 - ani_matrix.values
+    net_control.get_ani_matrix_vclust(fasta_file, output_dir)
+
+    ani_results = pd.read_csv(f'{output_dir}/ani.tsv', sep='\t')
+    labels = list(ani_results['query'].unique())
+    ani_matrix = net_control.set_edge_list_to_matrix(ani_results)
+
+    #labels = list(ani_matrix.index)
+    distance = 1.0 - ani_matrix
     linkage_matrix = linkage(squareform(distance), method="average")
-    num_assemblies = len(ani_matrix.index)
-    labels = list(ani_matrix.index)
+    num_assemblies = len(labels)
+    
     nodes = {i: Tree(name=labels[i]) for i in range(num_assemblies)}
 
     for i, (left, right, dist_val, _) in enumerate(linkage_matrix):

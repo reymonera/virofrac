@@ -112,7 +112,7 @@ while [[ $# -gt 0 ]]; do
         -i|--ani-tree)
             TREE_ANI_USED=true
             TREE_TYPE="ani"
-            shift 2
+            shift
             ;;
         # UniFrac/Distance metrics flags
         -u|--unweighted-unifrac)
@@ -589,7 +589,7 @@ else
         PYTHON_CMD="$PYTHON_CMD --otu-table \"$OTU_TABLE_FILE\" --tax-table \"$TAX_TABLE_FILE\""
     fi
     # ANI tree: needs OTU table and FASTA file
-    if [[ -n "$OTU_TABLE_FILE" ]] && [[ -n "$TAX_TABLE_FILE" ]]; then
+    if [[ -n "$OTU_TABLE_FILE" ]] && [[ -n "$FASTA_FILE" ]]; then
         PYTHON_CMD="$PYTHON_CMD --otu-table \"$OTU_TABLE_FILE\" --fasta \"$FASTA_FILE\""
     fi
 fi
@@ -599,7 +599,9 @@ if [[ -n "$TREE_TYPE" ]]; then
     PYTHON_CMD="$PYTHON_CMD --tree-type \"$TREE_TYPE\""
     
     if [[ "$TREE_TYPE" == "ani" ]]; then
-        PYTHON_CMD="$PYTHON_CMD --tree-type \"$TREE_TYPE\""
+        OUTPUT_DIR="$(pwd)/ani_tree_output"
+        mkdir -p "$OUTPUT_DIR"
+        PYTHON_CMD="$PYTHON_CMD --output-dir \"$OUTPUT_DIR\""
     fi
 fi
 

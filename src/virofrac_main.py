@@ -120,10 +120,11 @@ def get_input_otu_tree():
 def get_input_ani_tree():
     args = parse_arguments()
     fasta_file = args.fasta
+    output_dir = args.output_dir
 
     if args.tree_type.strip() == 'ani':
         #otu_table = get_input_otu_table()
-        input_tree = treetr.get_ani_tree(fasta_file)
+        input_tree = treetr.get_ani_tree(fasta_file, output_dir)
     
     GlobalTimer.log("✓ ANI Tree correctly loaded")
 
