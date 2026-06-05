@@ -117,22 +117,22 @@ while [[ $# -gt 0 ]]; do
         # UniFrac/Distance metrics flags
         -u|--unweighted-unifrac)
             UNIFRAC_UU_USED=true
-            UNIFRAC_TYPE="unweighted unifrac"
+            DISTANCE_TYPE="unweighted unifrac"
             shift
             ;;
         -z|--unnormalized-weighted-unifrac)
             UNIFRAC_UW_USED=true
-            UNIFRAC_TYPE="unnormalized weighted unifrac"
+            DISTANCE_TYPE="unnormalized weighted unifrac"
             shift
             ;;
         -w|--normalized-weighted-unifrac)
             UNIFRAC_NW_USED=true
-            UNIFRAC_TYPE="normalized weighted unifrac"
+            DISTANCE_TYPE="normalized weighted unifrac"
             shift
             ;;
         -s|--based-spectral-clustering)
             SPECTRAL_CLUSTERING_USED=true
-            UNIFRAC_TYPE="spectral clustering"
+            DISTANCE_TYPE="spectral clustering"
             shift
             ;;
         # Network flags
@@ -270,7 +270,7 @@ if [[ "$TREE_TAX_USED" == true ]] && { [[ -z "$OTU_TABLE_FILE" ]] || [[ -z "$TAX
     exit 1
 fi
 
-# A taxonomic table is required when using the tree option
+# A otu table and FASTA file is required when using the ANI tree option
 if [[ "$TREE_ANI_USED" == true ]] && { [[ -z "$OTU_TABLE_FILE" ]] }; then
     echo "Error: --ani-tree requires --otu-table"
     exit 1
@@ -416,7 +416,7 @@ if [[ "$ANI_USED" == true || "$GENE_SHARING_USED" == true ]] && [[ "$TREE_NET_US
 fi
 
 # Threshold only applies to ANI method
-if [[ "$NETWORK_THRESHOLD" != "0.70" ]] && [[ "$GENE_SHARING_USED" == true ]]; then
+if [[ -n "$NETWORK_THRESHOLD" ]] && [[ "$GENE_SHARING_USED" == true ]]; then
     echo "Warning: --threshold is ignored with --gene-sharing method"
     echo "         Threshold only applies to --ani method"
 fi
@@ -584,9 +584,13 @@ if [[ "$TREE_TYPE" == "network" ]]; then
         PYTHON_CMD="$PYTHON_CMD --fasta \"$FASTA_FILE\""
     fi
 else
-    # Taxonomic/Phylogenetic mode: needs OTU table and tax table
+    # Taxonomic tree: needs OTU table and tax table
     if [[ -n "$OTU_TABLE_FILE" ]] && [[ -n "$TAX_TABLE_FILE" ]]; then
         PYTHON_CMD="$PYTHON_CMD --otu-table \"$OTU_TABLE_FILE\" --tax-table \"$TAX_TABLE_FILE\""
+    fi
+    # ANI tree: needs OTU table and FASTA file
+    if [[ -n "$OTU_TABLE_FILE" ]] && [[ -n "$TAX_TABLE_FILE" ]]; then
+        PYTHON_CMD="$PYTHON_CMD --otu-table \"$OTU_TABLE_FILE\" --fasta \"$FASTA_FILE\""
     fi
 fi
 
@@ -594,14 +598,14 @@ fi
 if [[ -n "$TREE_TYPE" ]]; then
     PYTHON_CMD="$PYTHON_CMD --tree-type \"$TREE_TYPE\""
     
-    if [[ "$TREE_TYPE" == "phylogenetic" ]] && [[ -n "$PHY_TREE_FILE" ]]; then
-        PYTHON_CMD="$PYTHON_CMD --tree-file \"$PHY_TREE_FILE\""
+    if [[ "$TREE_TYPE" == "ani" ]]; then
+        PYTHON_CMD="$PYTHON_CMD --tree-type \"$TREE_TYPE\""
     fi
 fi
 
-# UniFrac type
-if [[ -n "$UNIFRAC_TYPE" ]]; then
-    PYTHON_CMD="$PYTHON_CMD --distance-type \"$UNIFRAC_TYPE\""
+# Distance type
+if [[ -n "$DISTANCE_TYPE" ]]; then
+    PYTHON_CMD="$PYTHON_CMD --distance-type \"$DISTANCE_TYPE\""
 fi
 
 # Network options

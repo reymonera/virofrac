@@ -1,5 +1,6 @@
 import pandas as pd
 from ete3 import Tree
+import src.network_control as net_control
 #Provisional
 import time
 from src.utils import GlobalTimer
@@ -63,41 +64,6 @@ def get_pruned_tree_1(otu_tax_table):
     
     return tree
 
-# def get_pruned_tree(otu_tax_table):
-#     nodes_to_keep = get_otus_taxa_list(otu_tax_table)
-#     tree = Tree(get_taxa_text_tree(), format=1)
-    
-#     print(f"Creando índice del árbol...")
-#     # CREAR ÍNDICE UNA SOLA VEZ - O(n)
-#     node_index = {node.name: node for node in tree.traverse() if node.name}
-#     print(f"✓ Índice creado: {len(node_index)} nodos")
-    
-#     ancestors = []
-#     ancestors_and_nodes = list(nodes_to_keep)
-    
-#     print(f"Buscando ancestros para {len(nodes_to_keep)} nodos...")
-#     for i, node_name in enumerate(nodes_to_keep):
-#         if i % 1000 == 0:
-#             print(f"  Procesando {i}/{len(nodes_to_keep)}...")
-        
-#         # BÚSQUEDA O(1) en lugar de O(n)
-#         node = node_index.get(node_name)
-        
-#         if node:
-#             ancestors.extend(node.get_ancestors())
-    
-#     for ancestor in ancestors:
-#         if ancestor.name:
-#             ancestors_and_nodes.append(ancestor.name)
-    
-#     unique_nodes = list(set(ancestors_and_nodes))
-#     print(f"✓ Nodos únicos a mantener: {len(unique_nodes)}")
-    
-#     tree.prune(unique_nodes, preserve_branch_length=True)
-#     tree.write(outfile="pruned_tree.newick", format=1)
-    
-#     return tree
-
 # This function gets the count of nan and list of 
 # non-nan values in a dictionary. This is mainly 
 # for the get_otu_tree function.
@@ -151,46 +117,6 @@ def get_otu_tree_1(otu_tax_table):
 
     return tree
 
-# def get_otu_tree(otu_tax_table):
-#     start = time.time()
-#     tree = get_pruned_tree(otu_tax_table)
-    
-#     print(f"Creando índice del árbol podado...")
-#     node_index = {node.name: node for node in tree.traverse() if node.name}
-#     print(f"✓ Índice creado: {len(node_index)} nodos")
-    
-#     # CALCULAR PROFUNDIDAD MÁXIMA DEL ÁRBOL (UNA VEZ)
-#     print(f"Calculando profundidad máxima del árbol...")
-#     max_depth = max(tree.get_distance(leaf) for leaf in tree.iter_leaves())
-#     print(f"✓ Profundidad máxima: {max_depth}")
-    
-#     otu_dictionary = get_otu_dictionary(otu_tax_table)
-#     print(f"Procesando {len(otu_dictionary)} OTUs...")
-    
-#     for i, (otu_id, taxonomy) in enumerate(otu_dictionary.items()):
-#         if i % 5000 == 0:
-#             print(f"  OTU {i}/{len(otu_dictionary)}...")
-        
-#         non_nan_values, nan_count = get_nan_non_nan_values(taxonomy)
-        
-#         if not non_nan_values:
-#             continue
-        
-#         most_specific = non_nan_values[-1]
-#         node = node_index.get(most_specific)
-        
-#         if node:
-#             # Calcular distancia faltante hasta el nivel máximo
-#             current_depth = tree.get_distance(node)
-#             missing_depth = max_depth - current_depth
-            
-#             # SIEMPRE agregar como hijo (sin if/else)
-#             node.add_child(name=otu_id, dist=missing_depth)
-    
-#     print(f"✓ OTUs agregados: {time.time() - start:.2f}s")
-#     tree.write(outfile="otu_tree.newick", format=1)
-#     return tree
-
 def get_pruned_tree(otu_tax_table):
     nodes_to_keep = get_otus_taxa_list(otu_tax_table)
     tree = Tree(get_taxa_text_tree(), format=1)
@@ -239,10 +165,6 @@ def get_otu_tree(otu_tax_table):
     otu_dictionary = get_otu_dictionary(otu_tax_table)
 
     node_index = {node.name: node for node in tree.traverse() if node.name}
-    #max_depth = max(tree.get_distance(leaf) for leaf in tree.iter_leaves())
-    # max_depth was being annoying and kind of was being calculated from the lowest level encountered in the table.
-    # so now it is taking the max_deth from the full tree, which will make it stay where it is.
-    # this has made the process far more slower now, optimization should be the next step for the tax option.
 
     otus_not_placed = []
 
@@ -267,9 +189,15 @@ def get_otu_tree(otu_tax_table):
         else:
             otus_not_placed.append(otu_id)
     
-    if otus_not_placed:
-        print(f"⚠️  {len(otus_not_placed)} OTUs no pudieron colocarse en el árbol")
+    # if otus_not_placed:
+    #     print(f"WARNING  {len(otus_not_placed)} OTUs no pudieron colocarse en el árbol")
     
     tree.write(outfile="otu_tree.newick", format=1)
+
+    return tree
+
+def get_ani_tree(fasta_file):
+    ani_matrix = net_control.get_ani_matrix_vclust(fasta_file, output_dir)
+
 
     return tree

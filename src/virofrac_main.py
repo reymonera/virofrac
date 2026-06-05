@@ -117,6 +117,18 @@ def get_input_otu_tree():
 
     return input_tree
 
+def get_input_ani_tree():
+    args = parse_arguments()
+    fasta_file = args.fasta
+
+    if args.tree_type.strip() == 'ani':
+        #otu_table = get_input_otu_table()
+        input_tree = treetr.get_ani_tree(fasta_file)
+    
+    GlobalTimer.log("✓ ANI Tree correctly loaded")
+
+    return input_tree
+
 def get_input_network():
     args = parse_arguments()
     fasta_file = args.fasta
@@ -143,8 +155,8 @@ def main():
     otu_table =  get_input_otu_table()
     
     # Check if this is importing an input tree
-    if args.tree_type.strip() == 'phylogenetic' or args.tree_type.strip() == 'taxonomic':
-        GlobalTimer.log("Implementing the tree option...")
+    if args.tree_type.strip() == 'taxonomic':
+        GlobalTimer.log("Implementing the taxonomic tree option...")
         otu_tree = get_input_otu_tree()
         matrix = oc.get_frac_matrix_output(otu_table, otu_tree, args.distance_type)
 
@@ -155,8 +167,11 @@ def main():
         
         network = get_input_network()
         matrix = oc.get_net_frac_matrix_output(network, args.distance_type, otu_table)
-
-        #oc.get_plot_network_output(network)
+    
+    elif args.tree_type.strip() == 'ani':
+        GlobalTimer.log("Implementing the ANI tree option...")
+        ani_tree = get_input_ani_tree() #implementar input ani tree acá
+        matrix = oc.get_frac_matrix_output(otu_table, ani_tree, args.distance_type)
 
     oc.get_heatmap_output(
         matrix, 

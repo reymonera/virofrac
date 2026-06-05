@@ -26,14 +26,14 @@ def get_processed_otu_table(lines):
             continue
         
         taxon_name = columns[0]
-        count_community_1 = int(columns[1])
-        count_community_2 = int(columns[2])
+        count_community_1 = float(columns[1])
+        count_community_2 = float(columns[2])
         
         if count_community_1 > 0 and count_community_2 > 0:
             taxon_communities[taxon_name] = (header[1], header[2])
         elif count_community_1 > 0 and count_community_2 == 0:
             taxon_communities[taxon_name] = (header[1],)
-        else:
+        elif count_community_2 > 0:
             taxon_communities[taxon_name] = (header[2],)
     
     return taxon_communities
@@ -42,13 +42,20 @@ def get_processed_otu_table(lines):
 # case, it refers to the community feature. The output
 # is a tree with leaves and the featured community
 # they belong to.
+
+# def put_community_feature_on_tree(tree, lines):
+#     taxon_communities = get_processed_otu_table(lines)
+    
+#     for leaf in tree.iter_leaves():
+#         if leaf.name in taxon_communities:
+#             leaf.community = taxon_communities[leaf.name]
+    
+#     return tree
+
 def put_community_feature_on_tree(tree, lines):
     taxon_communities = get_processed_otu_table(lines)
-    
     for leaf in tree.iter_leaves():
-        if leaf.name in taxon_communities:
-            leaf.community = taxon_communities[leaf.name]
-    
+        leaf.community = taxon_communities.get(leaf.name, ())
     return tree
 
 # This function gets all the branches that are unique.
@@ -59,11 +66,13 @@ def get_unique_branches(tree):
     unique_branches = []
     community_list = []
 
+    # for node in tree.traverse():
+    #     if node.is_root(): 
+    #         continue
+
     for node in tree.traverse():
         if node.is_root(): 
             continue
-
-    for node in tree.traverse():
         descendants = node.get_leaves()
         for leaf in descendants:
             community_list.append(leaf.community)
@@ -108,8 +117,8 @@ def get_community_dictionaries(lines):
         
         columns = line.split('\t')
         
-        first_community[columns[0]] = int(columns[1])
-        second_community[columns[0]] = int(columns[2])
+        first_community[columns[0]] = float(columns[1])
+        second_community[columns[0]] = float(columns[2])
     
     community_dictionaries.append(first_community)
     community_dictionaries.append(second_community)

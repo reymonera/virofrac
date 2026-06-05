@@ -79,6 +79,10 @@ def get_frac_matrix_output(otu_df, tree, distance_type):
     
     return pd.DataFrame(matrix, index=sample_names, columns=sample_names)
 
+# This function is managing the comparisons necessary
+# for the matrix output. For this, the function first
+# calculates the size of the matrix and then builds
+# the matrix based on the selected distance.
 def get_net_frac_matrix_output(network, distance_type, count_table):
     count_table = count_table.set_index(count_table.columns[0])
     sample_names = count_table.columns.tolist()
@@ -459,8 +463,9 @@ def get_heatmap_output(matrix, otu_df, distance_type, color_gradient, metadata_f
     plt.savefig('virofrac_heatmap.png', dpi=300, bbox_inches='tight')
     plt.savefig('virofrac_heatmap.svg', format='svg', bbox_inches='tight')
 
-    GlobalTimer.log("✓ Heatmap ready! Showing the final plot...")
-    plt.show()
+    # Necesito poner esto como opcón.
+    #GlobalTimer.log("✓ Heatmap ready! Showing the final plot...")
+    #plt.show()
     GlobalTimer.log("✓ Heatmap saved in virofrac_heatmap.png")
     
     return g
