@@ -262,43 +262,24 @@ echo "============================================================"
 echo "Checking if files are valid..."
 
 # --------------------------------------
-#    TAX-TABLE REQUIRED WITH OTU-TABLE
+#             TREE OPTIONS
 # --------------------------------------
-#if [[ -z "$OTU_TABLE_FILE" ]] && [[ -z "$TAX_TABLE_FILE" ]]; then
-#    echo "Error: --tax-table is required when using --otu-table"
-#    echo "Usage: virofrac.sh --otu-table [file] --tax-table [file] --[tree option]"
-#    exit 1
-#fi
-# Chequear condición
-
-if [[ -z "$OTU_TABLE_FILE" ]] && [[ -z "$TAX_TABLE_FILE" ]]; then
-    echo "Warning: --tax-table provided but --otu-table not selected"
-    echo "         --tax-table is only used with --otu-table"
+# A taxonomic table is required when using the tree option
+if [[ "$TREE_TAX_USED" == true ]] && { [[ -z "$OTU_TABLE_FILE" ]] || [[ -z "$TAX_TABLE_FILE" ]]; }; then
+    echo "Error: --tax-tree requires both --otu-table and --tax-table"
+    exit 1
 fi
 
-# # --------------------------------------
-# #    CHECK IF OTU_TABLE OR READS
-# # --------------------------------------
-
-# INPUT_COUNT=0
-# [[ -n "$OTU_TABLE_FILE" ]] && ((INPUT_COUNT++))
-# [[ -n "$FASTA_FILE" ]] && ((INPUT_COUNT++))
-
-# if [[ $INPUT_COUNT -eq 0 ]]; then
-#     echo "Error: Must provide either -o/--otu-table OR -f/--fasta"
-#     exit 1#17becf
-# fi
-
-# if [[ $INPUT_COUNT -gt 1 ]]; then
-#     echo "Error: Cannot use both -o/--otu-table and -f/--fasta together"
-#     echo "       Please choose only one input type"
-#     exit 1
-# fi
+# A taxonomic table is required when using the tree option
+if [[ "$TREE_ANI_USED" == true ]] && { [[ -z "$OTU_TABLE_FILE" ]] }; then
+    echo "Error: --ani-tree requires --otu-table"
+    exit 1
+fi
 
 # --------------------------------------
-#      MUTUALLY EXCLUSIVE TREES
+#      MUTUALLY EXCLUSIVE TREE AND NETWORK OPTION
 # --------------------------------------
-# User will only be able to select one type of tree.
+# User will only be able to select one type of tree or the network option
 TREE_OPTIONS=0
 [[ "$TREE_TAX_USED" == true ]] && ((TREE_OPTIONS++))
 [[ "$TREE_ANI_USED" == true ]] && ((TREE_OPTIONS++))
@@ -317,7 +298,7 @@ if [[ $TREE_OPTIONS -gt 1 ]]; then
 fi
 
 # --------------------------------------
-#      MUTUALLY UNIFRAC TYPES
+#      MUTUALLY DISTANCE TYPES
 # --------------------------------------
 DISTANCE_OPTIONS=0
 [[ "$UNIFRAC_UU_USED" == true ]] && ((DISTANCE_OPTIONS++))
