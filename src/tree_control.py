@@ -1,6 +1,9 @@
+import numpy as np
 import pandas as pd
 from ete3 import Tree
 import src.network_control as net_control
+from scipy.cluster.hierarchy import linkage, to_tree
+from scipy.spatial.distance import squareform
 #Provisional
 import time
 from src.utils import GlobalTimer
@@ -196,8 +199,20 @@ def get_otu_tree(otu_tax_table):
 
     return tree
 
-def get_ani_tree(fasta_file):
+def get_ani_tree(fasta_file, output_dir):
     ani_matrix = net_control.get_ani_matrix_vclust(fasta_file, output_dir)
+    
+    distance = 1.0 - ani_matrix.values
+    linkage_matrix = linkage(squareform(distance), method="average")
+    num_assemblies = len(ani_matrix.index)
+    labels = list(ani_matrix.index)
+    nodes = {i: Tree(name=labels[i]) for i in range(num_assemblies)}
 
-
+    for i, (left, right, dist_val, _) in enumerate(linkage_matrix):
+        tree = Tree()
+        tree.dist = dist_val
+        tree.add_child(nodes[int(left)])
+        tree.add_child(nodes[int(right)])
+        nodes[num_assemblies + i] = tree
+    
     return tree
