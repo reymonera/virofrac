@@ -36,6 +36,10 @@ Sample3 0.678      0.543      0.000
 
 A heatmap is the graphical output provided by ViroFrac. The heatmap function uses the seaborn package for visualization.
 
+#### PCoA
+
+A PCoA plot is also provided as a standard ViroFrac output. If included, an envfit vector can be drawn on the PCoA plots.
+
 ## Installation
 
 ## Usage
