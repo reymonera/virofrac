@@ -12,6 +12,8 @@ from matplotlib.patches import Patch
 from matplotlib.colors import LinearSegmentedColormap
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from ete3 import Tree
+from skbio.stats.distance import DistanceMatrix
+from skbio.stats.ordination import pcoa
 
 # This function manages the partial OTU tables that will
 # be used as an input when compairing each pair.
@@ -275,7 +277,7 @@ def add_significance_labels_to_heatmap(g, row_linkage, labels, metadata, legend_
             rotation=0
         )
 
-# --- FIN DE FUNCIONES AGREGADAS ---
+# --- END OF PERMUTATION FUNCTIONS ---
 
 # This function controls the heatmap output. There are two 
 # options: When there is no metadata input and when there 
@@ -346,7 +348,7 @@ def get_heatmap_output(matrix, otu_df, distance_type, color_gradient, metadata_f
 
     for idx, legend_col in enumerate(legend_columns):
         if legend_col not in metadata.columns:
-            GlobalTimer.log("⚠️ Legend column not found, skipping")
+            GlobalTimer.log("⚠ Legend column not found, skipping")
             continue
     
         values = metadata[legend_col]
@@ -366,7 +368,7 @@ def get_heatmap_output(matrix, otu_df, distance_type, color_gradient, metadata_f
                         fallback_idx = len(color_map) % 10
                         color_map[val] = sns.color_palette('tab10')[fallback_idx]
             else:
-                GlobalTimer.log("⚠️ Color column not found, using automatic colors")
+                GlobalTimer.log("⚠ Color column not found, using automatic colors")
                 palette = sns.color_palette('tab10', n_colors=len(unique_values))
                 color_map = dict(zip(unique_values, palette))
         else:
@@ -386,7 +388,7 @@ def get_heatmap_output(matrix, otu_df, distance_type, color_gradient, metadata_f
         legend_handles.append((legend_col, legend_items))
 
     if len(colors_combined.columns) == 0:
-        GlobalTimer.log("⚠️ No valid columns, generating simple heatmap")
+        GlobalTimer.log("⚠ No valid columns, generating simple heatmap")
         return get_heatmap_output(matrix, otu_df, distance_type, None, None, None)
 
     g = sns.clustermap(
@@ -469,3 +471,201 @@ def get_heatmap_output(matrix, otu_df, distance_type, color_gradient, metadata_f
     GlobalTimer.log("✓ Heatmap saved in virofrac_heatmap.png")
     
     return g
+
+# These functions control the PCoA output. There are two functions,
+# one specified for performing the permutation tests and the other
+# one that actually does the plot. The PCoA can be implemented
+# alongside an EnvFit test, in which vectors are drawn on the
+# PCoA plot.
+
+def get_envfit(vals, x, y, n_perm=999, seed=42):
+    r_x = np.corrcoef(vals, x)[0, 1]
+    r_y = np.corrcoef(vals, y)[0, 1]
+    r2_obs = r_x**2 + r_y**2
+    rng = np.random.default_rng(seed)
+    r2_perm = np.array([
+        np.corrcoef(v := rng.permutation(vals), x)[0, 1]**2 + np.corrcoef(v, y)[0, 1]**2
+        for _ in range(n_perm) 
+    ])
+    pval = (np.sum(r2_perm >= r2_obs) + 1) / (n_perm + 1)
+
+    return r_x, r_y, r2_obs, pval
+
+def get_pcoa_output(matrix, otu_df, distance_type, metadata_file=None, legend_columns=None, color_columns=None, env_columns=None):
+    env_r2_min=0.20 # Minimum R2 for vectors
+    env_pval_max=0.05 # Minimum p-value for vectors
+    n_perm=999 # Might take time in big datasets
+    
+    if not metadata_file or not legend_columns:
+        GlobalTimer.log("⚠ WARNING: PCoA requires metadata and at least one legend column. Skipping.")
+        return None
+    
+    # Loading matrix...
+    matrix_df = get_dataframe_from_matrix(matrix, otu_df)
+    sample_names = list(matrix_df.index)
+
+    with open(metadata_file, 'r') as f:
+        first_line = f.readline()
+    sep = '\t' if '\t' in first_line else (',' if ',' in first_line else None)
+    metadata = (
+        pd.read_csv(metadata_file, sep=sep)
+        if sep
+        else pd.read_csv(metadata_file, sep=None, engine='python')
+    )
+    sample_col = (
+        metadata.columns[metadata.columns.str.lower() == 'sample'][0]
+        if any(metadata.columns.str.lower() == 'sample')
+        else metadata.columns[0]
+    )
+    metadata = metadata.set_index(sample_col).loc[sample_names]
+
+    # PCoA
+    dm = DistanceMatrix(matrix, ids=sample_names)
+    pcoa_results = pcoa(dm)
+    pcoa_coords = pcoa_results.samples
+    explained   = pcoa_results.proportion_explained
+    pc1_var = round(explained.iloc[0] * 100, 1)
+    pc2_var = round(explained.iloc[1] * 100, 1)
+
+    # EnvFit
+    envfit_vectors = {}
+
+    if env_columns:
+        missing = [c for c in env_columns if c not in metadata.columns]
+        if missing:
+            GlobalTimer.log(f"⚠ env_columns not found in metadata and will be skipped: {missing}")
+
+        for col in env_columns:
+            if col not in metadata.columns:
+                continue
+            vals_series = metadata[col].dropna()
+            common = vals_series.index.intersection(pcoa_coords.index)
+            if len(common) < 3:
+                GlobalTimer.log(f"⚠ '{col}' has fewer than 3 common samples. Skipping.")
+                continue
+
+            vals = vals_series.loc[common].values
+            x    = pcoa_coords.loc[common, 'PC1'].values
+            y    = pcoa_coords.loc[common, 'PC2'].values
+
+            r_x, r_y, r2, pval = get_envfit(vals, x, y, n_perm=n_perm)
+
+            if r2 < env_r2_min:
+                GlobalTimer.log(f"  envfit '{col}': r²={r2:.3f} < {env_r2_min} → skipped (weak)")
+                continue
+            if pval > env_pval_max:
+                GlobalTimer.log(f"  envfit '{col}': p={pval:.3f} > {env_pval_max} → skipped (not significant)")
+                continue
+
+            envfit_vectors[col] = (r_x, r_y, r2, pval)
+            GlobalTimer.log(f"  envfit '{col}': r²={r2:.3f}, p={pval:.3f} ✓")
+
+    # Colors
+    color_maps = {}
+    for idx, legend_col in enumerate(legend_columns):
+        if legend_col not in metadata.columns:
+            GlobalTimer.log(f"⚠ Legend column '{legend_col}' not found, skipping.")
+            continue
+
+        values       = metadata[legend_col]
+        unique_values = sorted(values.dropna().unique())
+
+        if color_columns and idx < len(color_columns):
+            color_col = color_columns[idx]
+            if color_col in metadata.columns:
+                color_map = {}
+                for val in unique_values:
+                    mask = metadata[legend_col] == val
+                    cols_for_val = metadata.loc[mask, color_col].dropna().unique()
+                    color_map[val] = cols_for_val[0] if len(cols_for_val) > 0 else sns.color_palette('tab10')[len(color_map) % 10]
+            else:
+                GlobalTimer.log(f"⚠ Color column '{color_col}' not found, using automatic colors.")
+                color_map = dict(zip(unique_values, sns.color_palette('tab10', n_colors=len(unique_values))))
+        else:
+            color_map = dict(zip(unique_values, sns.color_palette('tab10', n_colors=len(unique_values))))
+
+        color_maps[legend_col] = color_map
+
+    valid_legend_cols = list(color_maps.keys())
+    if not valid_legend_cols:
+        GlobalTimer.log("⚠ No valid legend columns found. Skipping PCoA.")
+        return None
+
+    # Plot
+    n_plots = len(valid_legend_cols)
+    fig, axes = plt.subplots(1, n_plots, figsize=(7 * n_plots, 6), squeeze=False)
+
+    # Vector being projected at 0.75%
+    coord_range = max(
+        pcoa_coords['PC1'].abs().max(),
+        pcoa_coords['PC2'].abs().max()
+    )
+    arrow_scale = coord_range * 0.75
+
+    for col_idx, legend_col in enumerate(valid_legend_cols):
+        ax        = axes[0][col_idx]
+        color_map = color_maps[legend_col]
+        values    = metadata[legend_col]
+
+        # Scatter per group
+        for val in sorted(color_map.keys()):
+            mask = values == val
+            samples_in_group = values[mask].index.intersection(pcoa_coords.index)
+            if samples_in_group.empty:
+                continue
+            ax.scatter(
+                pcoa_coords.loc[samples_in_group, 'PC1'],
+                pcoa_coords.loc[samples_in_group, 'PC2'],
+                c=[color_map[val]], label=str(val),
+                s=70, edgecolors='white', linewidths=0.5, zorder=3,
+            )
+
+        # Muestras sin valor → gris
+        na_samples = values[values.isna()].index.intersection(pcoa_coords.index)
+        if not na_samples.empty:
+            ax.scatter(
+                pcoa_coords.loc[na_samples, 'PC1'],
+                pcoa_coords.loc[na_samples, 'PC2'],
+                c='#CCCCCC', label='NA',
+                s=70, edgecolors='white', linewidths=0.5, zorder=3,
+            )
+
+        # Envfit Arrows
+        for env_col, (r_x, r_y, r2, pval) in envfit_vectors.items():
+            length = np.sqrt(r2)
+            dx = (r_x / length) * arrow_scale * length
+            dy = (r_y / length) * arrow_scale * length
+
+            ax.annotate(
+                '', xy=(dx, dy), xytext=(0, 0),
+                arrowprops=dict(arrowstyle='->', color='#333333', lw=1.5, mutation_scale=12),
+                zorder=5,
+            )
+            label = f"{env_col}\nr²={r2:.2f}, p={pval:.3f}"
+            ax.text(
+                dx * 1.12, dy * 1.12, label,
+                fontsize=7.5, ha='center', va='center',
+                color='#333333', fontweight='bold', zorder=6,
+            )
+
+        ax.axhline(0, color='grey', linewidth=0.5, linestyle='--', zorder=1)
+        ax.axvline(0, color='grey', linewidth=0.5, linestyle='--', zorder=1)
+        ax.set_xlabel(f'PC1 ({pc1_var}%)', fontsize=11)
+        ax.set_ylabel(f'PC2 ({pc2_var}%)', fontsize=11)
+        ax.set_title(
+            f'{distance_type.title()} PCoA\nColored by: {legend_col}',
+            fontsize=12, pad=10,
+        )
+        ax.legend(
+            title=legend_col, bbox_to_anchor=(1.02, 1), loc='upper left',
+            fontsize=8, title_fontsize=9, frameon=True,
+        )
+        ax.set_aspect('equal', adjustable='datalim')
+
+    fig.suptitle(f'{distance_type.title()} Distance Matrix — PCoA', fontsize=14, y=1.02)
+    fig.tight_layout()
+    plt.savefig('virofrac_pcoa.png', dpi=300, bbox_inches='tight')
+    #plt.savefig('virofrac_pcoa.svg', format='svg', bbox_inches='tight')
+    GlobalTimer.log("✓ PCoA saved → virofrac_pcoa.png / virofrac_pcoa.svg")
+
+    return fig

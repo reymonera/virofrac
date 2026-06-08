@@ -48,6 +48,7 @@ if [[ $# -eq 0 ]]; then
     echo "  -c, --color-column [column_name]       If used, the script will apply the colors in the selected column. Requires a specified legend column."
     echo "                                         NOTE: Specify the legend columns and then the color columns. The script will use the corresponding order."
     echo "  -r, --color-gradient [string]          Default: 'coolwarm'. When used, user can specify another gradient or a custom gradient using hexacode"
+    echo "  -e, --env-column [column_name]         Environmental variable(s) for envfit projection in PCoA."
     echo ""
     echo "Output options:"
     echo "  -d, --output-directory [directory]     Defines an output directory."
@@ -68,6 +69,7 @@ SPECTRAL_CLUSTERING_USED=false
 # Arrays for metadata
 LEGEND_COLUMNS=()
 COLOR_COLUMNS=()
+ENV_COLUMNS=()
 
 # Network flags detection
 TREE_NET_USED=false
@@ -185,6 +187,14 @@ while [[ $# -gt 0 ]]; do
             COLOR_GRADIENT="$2"
             shift 2
             ;;
+        -e|--env-column)
+            if [[ -z "${2:-}" ]]; then
+                echo "Error: -e/--env-column requires a column name"
+                exit 1
+            fi
+            ENV_COLUMNS+=("$2")
+            shift 2
+            ;;
         -h|--help)
             echo ' _  _  __  ___   __  ___  ___    __   __ '
             echo '( )( )(  )(  ,) /  \(  _)(  ,)  (  ) / _)'
@@ -230,6 +240,7 @@ while [[ $# -gt 0 ]]; do
             echo "  -c, --color-column [column_name]       If used, the script will apply the colors in the selected column. Requires a specified legend column."
             echo "                                         NOTE: Specify the legend columns and then the color columns. The script will use the corresponding order."
             echo "  -r, --color-gradient [string]          Default: 'coolwarm'. When used, user can specify another gradient or a custom gradient using hexacode"
+            echo "  -e, --env-column [column_name]         Environmental variable(s) for envfit projection in PCoA."
             echo ""
             echo "Output options:"
             echo "  -d, --output-directory [directory]     Defines an output directory."
@@ -646,6 +657,12 @@ fi
 
 if [[ -n "$COLOR_GRADIENT" ]]; then
     PYTHON_CMD="$PYTHON_CMD --color-gradient \"$COLOR_GRADIENT\""
+fi
+
+if [[ ${#ENV_COLUMNS[@]} -gt 0 ]]; then
+    for col in "${ENV_COLUMNS[@]}"; do
+        PYTHON_CMD="$PYTHON_CMD --env-column \"$col\""
+    done
 fi
 
 eval $PYTHON_CMD

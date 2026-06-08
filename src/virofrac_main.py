@@ -78,6 +78,11 @@ def parse_arguments():
     
     parser.add_argument('--color-gradient',
                    type=str)
+    
+    parser.add_argument('--env-column',
+                    action='append',
+                    type=str,
+                    required=False)
 
     args = parser.parse_args()
 
@@ -182,6 +187,15 @@ def main():
         args.metadata,
         args.legend_column,
         args.color_column)
+    
+    oc.get_pcoa_output(
+        matrix,
+        otu_table,
+        args.distance_type,
+        args.metadata,
+        args.legend_column,
+        args.color_column,
+        args.env_column)
 
     return 0
 
