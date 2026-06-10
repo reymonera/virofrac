@@ -341,47 +341,92 @@ def get_unweighted_netunifrac(network, community_A, community_B):
 
     return unweighted_netunifrac
 
+# def get_weighted_netunifrac(network, community_A, community_B):
+#     list_num = []
+#     list_dem = []
+
+#     total_community_A = get_total_for_first_community(network, community_A, community_B)
+#     total_community_B = get_total_for_first_community(network, community_B, community_A)
+
+#     for node1, node2, weight in network.edges(data='weight'):
+#         n1_in_A = community_A in network.nodes[node1]['communities']
+#         n1_in_B = community_B in network.nodes[node1]['communities']
+#         n2_in_A = community_A in network.nodes[node2]['communities']
+#         n2_in_B = community_B in network.nodes[node2]['communities']
+
+#         node1_A = network.nodes[node1]['communities'].get(community_A, 0)
+#         node1_B = network.nodes[node1]['communities'].get(community_B, 0)
+#         node2_A = network.nodes[node2]['communities'].get(community_A, 0)
+#         node2_B = network.nodes[node2]['communities'].get(community_B, 0)
+
+#         if not ((n1_in_A or n1_in_B) and (n2_in_A or n2_in_B)):
+#             continue
+
+#     # Go through all distances
+#     # Multiply them by the proportions of node wieghts
+#         if total_community_A == 0 or total_community_B == 0:
+#             continue
+#         else:
+#             # The (1 - weight) here is doing the distance transformation, instead of using the function assigned
+#             # for this transformation as in the get_weighted_netunifrac() function
+#             num = (1 - weight)*abs((node1_A + node2_A)/total_community_A - (node1_B + node2_B)/total_community_B)
+#             dem = (1 - weight)*abs((node1_A + node2_A)/total_community_A + (node1_B + node2_B)/total_community_B)
+#         # Save this on a list
+#             list_num.append(num)
+#             list_dem.append(dem)
+#     # Return the division
+#     # Handle empty lists
+#     if sum(list_dem) == 0:
+#         weighted_netunifrac = 1
+#     else:
+#         weighted_netunifrac = sum(list_num) / sum(list_dem)
+    
+#     return weighted_netunifrac
+
+# Weighted but with monochromatic edges
 def get_weighted_netunifrac(network, community_A, community_B):
     list_num = []
     list_dem = []
-
+    
     total_community_A = get_total_for_first_community(network, community_A, community_B)
     total_community_B = get_total_for_first_community(network, community_B, community_A)
-
+    
+    if total_community_A == 0 or total_community_B == 0:
+        return 1.0
+    
     for node1, node2, weight in network.edges(data='weight'):
         n1_in_A = community_A in network.nodes[node1]['communities']
         n1_in_B = community_B in network.nodes[node1]['communities']
         n2_in_A = community_A in network.nodes[node2]['communities']
         n2_in_B = community_B in network.nodes[node2]['communities']
-
+        
+        if not ((n1_in_A or n1_in_B) and (n2_in_A or n2_in_B)):
+            continue
+        
         node1_A = network.nodes[node1]['communities'].get(community_A, 0)
         node1_B = network.nodes[node1]['communities'].get(community_B, 0)
         node2_A = network.nodes[node2]['communities'].get(community_A, 0)
         node2_B = network.nodes[node2]['communities'].get(community_B, 0)
-
-        if not ((n1_in_A or n1_in_B) and (n2_in_A or n2_in_B)):
-            continue
-
-    # Go through all distances
-    # Multiply them by the proportions of node wieghts
-        if total_community_A == 0 or total_community_B == 0:
-            continue
-        else:
-            # The (1 - weight) here is doing the distance transformation, instead of using the function assigned
-            # for this transformation as in the get_weighted_netunifrac() function
-            num = (1 - weight)*abs((node1_A + node2_A)/total_community_A - (node1_B + node2_B)/total_community_B)
-            dem = (1 - weight)*abs((node1_A + node2_A)/total_community_A + (node1_B + node2_B)/total_community_B)
-        # Save this on a list
-            list_num.append(num)
-            list_dem.append(dem)
-    # Return the division
-    # Handle empty lists
-    if sum(list_dem) == 0:
-        weighted_netunifrac = 1
-    else:
-        weighted_netunifrac = sum(list_num) / sum(list_dem)
+        
+        prop_diff = abs((node1_A + node2_A)/total_community_A - 
+                        (node1_B + node2_B)/total_community_B)
+        prop_sum  = abs((node1_A + node2_A)/total_community_A + 
+                        (node1_B + node2_B)/total_community_B)
+        
+        # Monochromatic check inline
+        both_A_only = (n1_in_A and n2_in_A and not n1_in_B and not n2_in_B)
+        both_B_only = (n1_in_B and n2_in_B and not n1_in_A and not n2_in_A)
+        is_mono     = both_A_only or both_B_only
+        
+        if is_mono:
+            list_num.append((1 - weight) * prop_diff)
+        
+        list_dem.append((1 - weight) * prop_sum)
     
-    return weighted_netunifrac
+    if sum(list_dem) == 0:
+        return 1.0
+    
+    return sum(list_num) / sum(list_dem)
     
 def put_edge_community_data(network):
     edge_data = []
