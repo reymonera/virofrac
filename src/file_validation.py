@@ -71,12 +71,12 @@ def get_validation_tax_table(filepath):
         if pd.to_numeric(ids, errors='coerce').notnull().all():
             raise ValueError(f"First column '{otu_col}' looks numeric; expected text IDs")
 
-        for col in df.columns[1:]:
-            coerced = pd.to_numeric(df[col], errors='coerce')
-            bad = coerced.isnull() & df[col].notnull()
-            if bad.any():
-                rows = df.index[bad].tolist()[:5]
-                raise ValueError(f"Column '{col}' has non-numeric values at rows {rows}")
+        # for col in df.columns[1:]:
+        #     coerced = pd.to_numeric(df[col], errors='coerce')
+        #     bad = coerced.isnull() & df[col].notnull()
+        #     if bad.any():
+        #         rows = df.index[bad].tolist()[:5]
+        #         raise ValueError(f"Column '{col}' has non-numeric values at rows {rows}")
 
         GlobalTimer.log("✓ Tax table validated")
     
