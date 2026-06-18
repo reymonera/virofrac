@@ -14,16 +14,17 @@ def get_count_table(count_table_path):
 
     return indexed_count_table
 
-##CHECK
-# Convert vclust edge list output to a square adjacency matrix.
+# Converts vclust edge list output to a square adjacency matrix.
+# For this, the function is using tANI as the ANI value. This is
+# controlled by the ani_col value. It also detects the query and
+# reference value from the vClust output, which is re-ordered for
+# the matrix.
 def set_edge_list_to_matrix(edges_df):
-    # Detect query column
     if 'query' in edges_df.columns:
         query_col = 'query'
     else:
         raise ValueError(f"Could not find query column. Available: {edges_df.columns.tolist()}")
     
-    # Detect target/reference column
     if 'reference' in edges_df.columns:
         target_col = 'reference'
     elif 'target' in edges_df.columns:
@@ -31,19 +32,11 @@ def set_edge_list_to_matrix(edges_df):
     else:
         raise ValueError(f"Could not find target/reference column. Available: {edges_df.columns.tolist()}")
     
-    # Detect ANI column
     if 'tani' in edges_df.columns:
         ani_col = 'tani'
-    elif 'gani' in edges_df.columns:
-        ani_col = 'gani'
-    elif 'ani' in edges_df.columns:
-        ani_col = 'ani'
     else:
         raise ValueError(f"Could not find ANI column. Available: {edges_df.columns.tolist()}")
 
-    #print(f"DEBUG: Using columns - query: {query_col}, target: {target_col}, ani: {ani_col}")
-
-    # Get all unique sequence IDs
     all_seqs = pd.unique(edges_df[[query_col, target_col]].values.ravel())
     n = len(all_seqs)
     

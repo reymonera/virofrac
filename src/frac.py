@@ -440,7 +440,7 @@ def put_edge_community_data(network):
 # This function performs a distance based on spectral clustering. It
 # requires similarity instead of distance as an input. If the denominator
 # is equal to 0, then it will automatically return 1.
-def get_based_spectral_clustering_2(edge_data, community_A, community_B):
+def get_based_spectral_clustering_1(edge_data, community_A, community_B):
     sum_bichromatic = 0.0
     volume_A = 0.0
     volume_B = 0.0
@@ -507,15 +507,18 @@ def get_based_spectral_clustering(edge_data, community_A, community_B):
         node2_A = communities_2.get(community_A, 0)
         node2_B = communities_2.get(community_B, 0)
         
-        delta1 = node1_A - node1_B
-        delta2 = node2_A - node2_B
-        
-        factor = weight * (1 - (delta1 * delta2) / 2)
+        delta1 = (node1_A - node1_B)
+        delta2 = (node2_A - node2_B)
+
+        factor = weight * ((1 - delta1 * delta2) / 2)
+        #print("delta1 is: ", delta1)
+        #print("delta2 is: ", delta2)
+        #print("factor is: ", factor)
         
         if n1_in_A or n2_in_A:
-            volume_A += factor
+            volume_A += weight
         if n1_in_B or n2_in_B:
-            volume_B += factor
+            volume_B += weight
         
         both_in_both   = (n1_in_A and n1_in_B and n2_in_A and n2_in_B)
         is_bichromatic = (n1_in_A != n2_in_A or n1_in_B != n2_in_B) or both_in_both
@@ -525,6 +528,62 @@ def get_based_spectral_clustering(edge_data, community_A, community_B):
     
     vol_A_adj = volume_A #* total_A
     vol_B_adj = volume_B #* total_B
+    
+    if vol_A_adj == 0 or vol_B_adj == 0:
+        return 1.0
+    
+    return 1 - 0.5 * (sum_bichromatic / vol_A_adj + sum_bichromatic / vol_B_adj)
+
+def get_based_spectral_clustering_2(edge_data, community_A, community_B):
+    
+    # Calculate totals directly from edge_data
+    total_A = 0.0
+    total_B = 0.0
+    for communities_1, communities_2, weight in edge_data:
+        for communities in [communities_1, communities_2]:
+            if community_A in communities:
+                total_A += communities[community_A]
+            if community_B in communities:
+                total_B += communities[community_B]
+    
+    if total_A == 0 or total_B == 0:
+        return 1.0
+    
+    sum_bichromatic = 0.0
+    volume_A = 0.0
+    volume_B = 0.0
+    
+    for communities_1, communities_2, weight in edge_data:
+        n1_in_A = community_A in communities_1
+        n1_in_B = community_B in communities_1
+        n2_in_A = community_A in communities_2
+        n2_in_B = community_B in communities_2
+        
+        if not ((n1_in_A or n1_in_B) and (n2_in_A or n2_in_B)):
+            continue
+        
+        node1_A = communities_1.get(community_A, 0)
+        node1_B = communities_1.get(community_B, 0)
+        node2_A = communities_2.get(community_A, 0)
+        node2_B = communities_2.get(community_B, 0)
+        
+        if n1_in_A or n2_in_A:
+            volume_A += weight
+        if n1_in_B or n2_in_B:
+            volume_B += weight
+        
+        both_in_both   = (n1_in_A and n1_in_B and n2_in_A and n2_in_B)
+        is_bichromatic = (n1_in_A != n2_in_A or n1_in_B != n2_in_B) or both_in_both
+        
+        if is_bichromatic:
+            # Numerator: edge weight × sum of node abundances in both communities
+            node_abund_sum = node1_A + node1_B + node2_A + node2_B
+            sum_bichromatic += weight * node_abund_sum
+    
+    # Denominator: volume × |total_A - total_B|
+    diff = abs(total_A - total_B)
+    vol_A_adj = volume_A * diff
+    vol_B_adj = volume_B * diff
     
     if vol_A_adj == 0 or vol_B_adj == 0:
         return 1.0
