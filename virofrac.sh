@@ -30,7 +30,8 @@ if [[ $# -eq 0 ]]; then
     echo "  -w, --normalized-weighted-distance     Selects the normalized weighted unifrac option. When paired with the network option it will perform a Weighted NetUniFrac distance."
     echo "                                         • When paired with a tree option it will perform a normalized weighted UniFrac distance." 
     echo "                                         • When paired with the network option it will perform an weighted NetUniFrac distance."
-    echo "  -s, --based-spectral-clustering        Selects the distance based on spectral clustering (Only available with Network option)"
+    echo "  -s, --spectre                          Selects the Spectre distance (Only available with Network option)"
+    echo "  -y, --fuzzy-spectre                    Selects the Fuzzy Spectre distance for abundance influence on community distances (Only available with Network option)"
     echo ""
     echo "Tree options:"
     echo "  -x, --tax-tree                         Selects the taxonomic tree mode"
@@ -65,6 +66,7 @@ UNIFRAC_UU_USED=false
 UNIFRAC_UW_USED=false
 UNIFRAC_NW_USED=false
 SPECTRAL_CLUSTERING_USED=false
+FUZZY_SPECTRAL_CLUSTERING_USED=false
 
 # Arrays for metadata
 LEGEND_COLUMNS=()
@@ -132,9 +134,14 @@ while [[ $# -gt 0 ]]; do
             DISTANCE_TYPE="normalized weighted unifrac"
             shift
             ;;
-        -s|--based-spectral-clustering)
+        -s|--spectre)
             SPECTRAL_CLUSTERING_USED=true
-            DISTANCE_TYPE="spectral clustering"
+            DISTANCE_TYPE="spectre"
+            shift
+            ;;
+        -y|--fuzzy-spectre)
+            FUZZY_SPECTRAL_CLUSTERING_USED=true
+            DISTANCE_TYPE="fuzzy spectre"
             shift
             ;;
         # Network flags
@@ -222,7 +229,8 @@ while [[ $# -gt 0 ]]; do
             echo "  -w, --normalized-weighted-distance     Selects the normalized weighted unifrac option. When paired with the network option it will perform a Weighted NetUniFrac distance."
             echo "                                         • When paired with a tree option it will perform a normalized weighted UniFrac distance." 
             echo "                                         • When paired with the network option it will perform an weighted NetUniFrac distance."
-            echo "  -s, --based-spectral-clustering        Selects the distance based on spectral clustering (Only available with Network option)"
+            echo "  -s, --spectre                          Selects the Spectre distance (Only available with Network option)"
+            echo "  -y, --fuzzy-spectre                    Selects the Fuzzy Spectre distance for abundance influence on community distances (Only available with Network option)"
             echo ""
             echo "Tree options:"
             echo "  -x, --tax-tree                         Selects the taxonomic tree mode"
@@ -316,6 +324,7 @@ DISTANCE_OPTIONS=0
 [[ "$UNIFRAC_UW_USED" == true ]] && ((DISTANCE_OPTIONS++))
 [[ "$UNIFRAC_NW_USED" == true ]] && ((DISTANCE_OPTIONS++))
 [[ "$SPECTRAL_CLUSTERING_USED" == true ]] && ((DISTANCE_OPTIONS++))
+[[ "$FUZZY_SPECTRAL_CLUSTERING_USED" == true ]] && ((DISTANCE_OPTIONS++))
 
 if [[ $DISTANCE_OPTIONS -gt 1 ]]; then
     echo "Error: Only one distance type can be selected"
@@ -324,7 +333,8 @@ if [[ $DISTANCE_OPTIONS -gt 1 ]]; then
     [[ "$UNIFRAC_UU_USED" == true ]] && echo "  • -u/--unweighted-unifrac"
     [[ "$UNIFRAC_UW_USED" == true ]] && echo "  • -z/--unnormalized-weighted-unifrac"
     [[ "$UNIFRAC_NW_USED" == true ]] && echo "  • -w/--normalized-weighted-unifrac"
-    [[ "$SPECTRAL_CLUSTERING_USED" == true ]] && echo "  • -s/--based-spectral-clustering"
+    [[ "$SPECTRAL_CLUSTERING_USED" == true ]] && echo "  • -s/--spectre"
+    [[ "$FUZZY_SPECTRAL_CLUSTERING_USED" == true ]] && echo "  • -y/--fuzzy-spectre"
     echo ""
     echo "Please select only ONE distance type."
     exit 1
@@ -402,7 +412,7 @@ fi
 
 # Spectral clustering only makes sense with network mode
 if [[ "$SPECTRAL_CLUSTERING_USED" == true ]] && [[ "$TREE_NET_USED" != true ]]; then
-    echo "Error: --based-spectral-clustering requires -nt/--network"
+    echo "Error: --spectre requires -nt/--network"
     exit 1
 fi
 

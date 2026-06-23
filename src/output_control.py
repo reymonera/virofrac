@@ -93,20 +93,22 @@ def get_net_frac_matrix_output(network, distance_type, count_table):
     matrix = np.zeros((n, n))
 
     # Precompute once
-    if distance_type == 'spectral clustering':
+    if distance_type in ('spectre', 'fuzzy spectre'):
         edge_data = frac.put_edge_community_data(network)
 
     for (i, j) in tqdm(combinations(range(n), 2),
                         total=total_pairs,
-                        desc=f"[{GlobalTimer.elapsed():7.2f}s] Brewing UniFrac",
+                        desc=f"[{GlobalTimer.elapsed():7.2f}s] Brewing distance",
                         unit="pairs"):
         sample_i = sample_names[i]
         sample_j = sample_names[j]
 
         if distance_type == 'normalized weighted unifrac':
             distance = frac.get_weighted_netunifrac(network, sample_i, sample_j)
-        elif distance_type == 'spectral clustering':
+        elif distance_type == 'spectre':
             distance = frac.get_based_spectral_clustering(edge_data, sample_i, sample_j)
+        elif distance_type == 'fuzzy spectre':
+            distance = frac.get_based_fuzzy_spectral_clustering(edge_data, sample_i, sample_j)
         else:
             distance = frac.get_unweighted_netunifrac(network, sample_i, sample_j)
 
