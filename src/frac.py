@@ -534,5 +534,8 @@ def get_based_fuzzy_spectral_clustering(edge_data, community_A, community_B):
 
     if volume_A == 0 or volume_B == 0:
         return 1.0
+    
+    fs_distance = 1 - 0.5 * (sum_bichromatic / volume_A + sum_bichromatic / volume_B)
+    return max(0.0, fs_distance)
 
-    return 1 - 0.5 * (sum_bichromatic / volume_A + sum_bichromatic / volume_B)
+    #return 1 - 0.5 * (sum_bichromatic / volume_A + sum_bichromatic / volume_B)

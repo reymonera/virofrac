@@ -80,6 +80,9 @@ def get_ani_matrix_vclust(input_fasta, output_dir):
 
     return matrix
 
+# get_protein_prediction takes a FASTA file and predicts the genes,
+# transcribing how many proteins it found and then returning the
+# number of proeins it found. 
 def get_protein_prediction(header, sequence, faa, gene_finder, genome_proteins):
     
     if not header or not sequence:
