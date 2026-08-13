@@ -17,3 +17,6 @@ dependencies:
   - networkx
   - vclust
   - vcontact3
+  - treeswift
+  - diamond
+  - pyrodigal
