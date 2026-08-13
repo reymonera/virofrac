@@ -5,16 +5,22 @@ ViroFrac is a software package for estimating distances between viral communitie
 ## Features
 
 ### Relatedness methods
-
-ViroFrac offers 2 approaches for establishing relationships between viral OTUs:
+ViroFrac offers 3 approaches for establishing relationships between viral contigs:
 
 #### Taxonomic tree
 
-Builds a hierarchical tree based on the ICTV taxonomy. For this, the tool uses a background reference tree containing all the ICTV-recognized taxa (VMR MSL40).
+Based on a bundled ICTV taxonomic tree, this approach can calculate weighted and unweighted UniFrac distances between viral communities. For this, the tool uses a background reference tree containing all the ICTV-recognized taxa (VMR MSL40).
+
+#### ANI tree
+
+Using ANI scores provided by vClust (v1.3.1), this method generates an ANI UPGMA tree, in which weighted and unweighted UniFrac can be applied.
 
 #### Network
 
-Builds a similarity network between contigs. Networks can be built using ANI-based distance with vClust (v1.3.1) and gene-sharing based distance with Pyrodigal (v3.7.0) and DIAMOND (v2.1.15.169).
+Builds a network between contigs. Networks can be built using ANI-based distance with vClust (v1.3.1) and gene-sharing based distance with Pyrodigal (v3.7.0) and DIAMOND (v2.1.15.169).
+
+#### Overview of ViroFrac's workflow
+<img src="./img/figure_1.png" alt="ViroFrac logo" width="600" />
 
 ### Output
 
@@ -34,7 +40,9 @@ Sample3 0.678      0.543      0.000
 
 #### Heatmap
 
-A heatmap is the graphical output provided by ViroFrac. The heatmap function uses the seaborn package for visualization.
+A heatmap is the graphical output provided by ViroFrac. The heatmap function uses the seaborn package for visualization. A raw heatmap output by ViroFrac has the following appearence:
+
+<img src="./img/gene-sharing_spectral_heatmap.svg" alt="ViroFrac logo" width="500" />
 
 #### PCoA
 
