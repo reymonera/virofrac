@@ -121,6 +121,10 @@ Output options:
 
 ```
 ## Quick Start [PROVISIONALLY]
+After installing the environment, run:
+```
+conda activate virofrac
+```
 If:
 - contigs file location: `tara_oceans/TOV_43_populations.fna`
 - count table location: `tara_oceans/tov_population_relative_abundance.csv`
