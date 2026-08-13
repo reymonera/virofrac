@@ -20,7 +20,7 @@ Using ANI scores provided by vClust (v1.3.1), this method generates an ANI UPGMA
 Builds a network between contigs. Networks can be built using ANI-based distance with vClust (v1.3.1) and gene-sharing based distance with Pyrodigal (v3.7.0) and DIAMOND (v2.1.15.169).
 
 #### Overview of ViroFrac's workflow
-<img src="./img/figure_1.png" alt="ViroFrac logo" width="600" />
+<img src="./img/figure_1.png" alt="ViroFrac workflow" width="600" />
 
 ### Output
 
@@ -42,7 +42,7 @@ Sample3 0.678      0.543      0.000
 
 A heatmap is the graphical output provided by ViroFrac. The heatmap function uses the seaborn package for visualization. A raw heatmap output by ViroFrac has the following appearence:
 
-<img src="./img/gene-sharing_spectral_heatmap.svg" alt="ViroFrac logo" width="500" />
+<img src="./img/gene-sharing_spectral_heatmap.svg" alt="ViroFrac Heatmap Sample" width="500" />
 
 #### PCoA
 
