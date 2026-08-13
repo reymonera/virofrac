@@ -48,7 +48,7 @@ One of the graphical outputs provided by ViroFrac are heatmaps (`virofrac_heatma
 
 A PCoA plot is also provided as a standard ViroFrac output. If included, an envfit vector can be drawn on the PCoA plots.
 
-<img src="./img/virofrac_pcoa.svg" alt="ViroFrac Heatmap Sample" width="800" />
+<img src="./img/virofrac_pcoa.png" alt="ViroFrac Heatmap Sample" width="800" />
 
 ## Installation [PROVISIONALLY]
 
