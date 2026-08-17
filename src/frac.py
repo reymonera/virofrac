@@ -437,7 +437,7 @@ def put_edge_community_data(network):
 
     return edge_data
 
-# This function performs a distance based on spectral clustering. It
+# This function performs the Spectre distance. It
 # requires similarity instead of distance as an input. If the denominator
 # is equal to 0, then it will automatically return 1.
 def get_based_spectral_clustering(edge_data, community_A, community_B):

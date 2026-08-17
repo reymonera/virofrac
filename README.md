@@ -65,7 +65,7 @@ A ZIP download to the execution location can also do the work.
 conda env create -f virofrac-env.yml
 ```
 
-Currently, ViroFrac is running based on the scripts provided in this repo. The installation package is in development.
+**Note:** Currently, ViroFrac is running based on the scripts provided in this repo. The installation package is in development. You'll have to make sure to correctly point at `virofrac.sh`
 
 ## Usage
 ```
