@@ -125,7 +125,7 @@ def get_dataframe_from_matrix(matrix, otu_df):
 
     GlobalTimer.log("Saving matrix as a dataframe...")
 
-    matrix_as_df.to_csv('matrix_as_dataframe.tsv', sep='\t')
+    matrix_as_df.to_csv('virofrac_matrix.tsv', sep='\t')
 
     return matrix_as_df
 
