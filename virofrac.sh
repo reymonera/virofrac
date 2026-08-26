@@ -308,7 +308,7 @@ if [[ "$TREE_TAX_USED" == true ]] && { [[ -z "$OTU_TABLE_FILE" ]] || [[ -z "$TAX
 fi
 
 # A otu table and FASTA file is required when using the ANI tree option
-if [[ "$TREE_ANI_USED" == true ]] && { [[ -z "$OTU_TABLE_FILE" ]] }; then
+if [[ "$TREE_ANI_USED" == true ]] && [[ -z "$OTU_TABLE_FILE" ]]; then
     echo "Error: --ani-tree requires --otu-table"
     exit 1
 fi
