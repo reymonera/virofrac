@@ -656,7 +656,7 @@ if [[ "$TREE_NET_USED" == true ]]; then
     fi
     
     if [[ "$ANI_USED" == true ]]; then
-        PYTHON_CMD="$PYTHON_CMD --threshold \"$NETWORK_THRESHOLD\""
+        #PYTHON_CMD="$PYTHON_CMD --threshold \"$NETWORK_THRESHOLD\""
         PYTHON_CMD="$PYTHON_CMD --output-dir \"$OUTPUT_DIR\""
     fi
 
