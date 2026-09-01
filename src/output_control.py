@@ -58,7 +58,7 @@ def get_frac_matrix_output(otu_df, tree, distance_type):
     
     for (i, j) in tqdm(combinations(range(n), 2), 
                        total=total_pairs,
-                       desc=f"[{GlobalTimer.elapsed():7.2f}s] Brewing UniFrac",
+                       desc=f"[{GlobalTimer.elapsed():7.2f}s] Brewing Dissimilarity",
                        unit="pairs"):
         
         col_i = sample_names[i]
@@ -305,7 +305,7 @@ def get_heatmap_output(matrix, otu_df, distance_type, color_gradient, metadata_f
             fmt='.3f',
             figsize=(15, 13),
             cbar_kws={
-                'label': 'UniFrac Distance',
+                'label': 'Dissimilarity',
                 'orientation': 'horizontal'
             },
             linewidths=0.5,
@@ -404,7 +404,7 @@ def get_heatmap_output(matrix, otu_df, distance_type, color_gradient, metadata_f
         vmax=1,
         annot=False,
         figsize=(15, 13),
-        cbar_kws={'label': 'UniFrac Distance'},
+        cbar_kws={'label': 'Dissimilarity'},
         linewidths=0,
         xticklabels=matrix_df.columns,
         yticklabels=matrix_df.index,
