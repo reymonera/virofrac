@@ -1,6 +1,6 @@
 import src.frac as frac
 from src.utils import GlobalTimer
-from itertools import combinations
+from itertools import combinations, repeat
 import pandas as pd
 import numpy as np
 import seaborn as sns
@@ -81,39 +81,45 @@ def get_frac_matrix_output(otu_df, tree, distance_type):
     
     return pd.DataFrame(matrix, index=sample_names, columns=sample_names)
 
-# This function is managing the comparisons necessary
-# for the matrix output. For this, the function first
-# calculates the size of the matrix and then builds
-# the matrix based on the selected distance.
-def get_net_frac_matrix_output(network, distance_type, count_table):
+NET_DISTANCE_FUNCTIONS = {
+    'normalized weighted unifrac': frac.get_weighted_netunifrac,
+    'spectre': frac.get_based_spectral_clustering,
+    'fuzzy spectre': frac.get_based_fuzzy_spectral_clustering,
+}
+
+# Computes the distance for one pair of samples: extracts its subnetwork and applies the chosen distance.
+def get_pair_distance(network, distance_function, column_A, column_B):
+    pair_edges = frac.get_pair_edges(network, column_A, column_B)
+    return distance_function(pair_edges)
+
+# Builds the samples x samples distance matrix from the network. The pairs are independent,
+# so they run in parallel across threads. Same output: a DataFrame indexed by sample.
+# Any distance_type not in the dictionary uses unweighted, like the old 'else' branch.
+def get_net_frac_matrix_output(network, distance_type, count_table, workers=None):
     count_table = count_table.set_index(count_table.columns[0])
     sample_names = count_table.columns.tolist()
     n = len(sample_names)
     total_pairs = n * (n - 1) // 2
     matrix = np.zeros((n, n))
 
-    # Precompute once
-    if distance_type in ('spectre', 'fuzzy spectre'):
-        edge_data = frac.put_edge_community_data(network)
+    distance_function = NET_DISTANCE_FUNCTIONS.get(distance_type, frac.get_unweighted_netunifrac)
+    sample_to_column = {name: idx for idx, name in enumerate(network.sample_names)}
+    network_columns = [sample_to_column[name] for name in sample_names]
 
-    for (i, j) in tqdm(combinations(range(n), 2),
-                        total=total_pairs,
-                        desc=f"[{GlobalTimer.elapsed():7.2f}s] Brewing distance",
-                        unit="pairs"):
-        sample_i = sample_names[i]
-        sample_j = sample_names[j]
+    pair_i, pair_j = np.triu_indices(n, k=1)
+    columns_i = [network_columns[i] for i in pair_i]
+    columns_j = [network_columns[j] for j in pair_j]
 
-        if distance_type == 'normalized weighted unifrac':
-            distance = frac.get_weighted_netunifrac(network, sample_i, sample_j)
-        elif distance_type == 'spectre':
-            distance = frac.get_based_spectral_clustering(edge_data, sample_i, sample_j)
-        elif distance_type == 'fuzzy spectre':
-            distance = frac.get_based_fuzzy_spectral_clustering(edge_data, sample_i, sample_j)
-        else:
-            distance = frac.get_unweighted_netunifrac(network, sample_i, sample_j)
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        pair_distances = list(tqdm(
+            executor.map(get_pair_distance, repeat(network), repeat(distance_function), columns_i, columns_j),
+            total=total_pairs,
+            desc=f"[{GlobalTimer.elapsed():7.2f}s] Brewing distance",
+            unit="pairs"
+        ))
 
-        matrix[i, j] = distance
-        matrix[j, i] = distance
+    matrix[pair_i, pair_j] = pair_distances
+    matrix[pair_j, pair_i] = pair_distances
 
     return pd.DataFrame(matrix, index=sample_names, columns=sample_names)
 

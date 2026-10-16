@@ -1,4 +1,5 @@
 import argparse
+import csv
 from pathlib import Path
 import pandas as pd
 import src.tree_control as treetr
@@ -88,11 +89,14 @@ def parse_arguments():
 
     return args
 
+# Reads the OTU table by detecting the separator from the first line (the same thing sep=None did)
+# and parsing with the C engine instead of the Python engine.
 def get_input_otu_table():
     args = parse_arguments()
-    input_otu = pd.read_csv(args.otu_table, sep=None, engine='python')
+    with open(args.otu_table, 'r') as otu_file:
+        separator = csv.Sniffer().sniff(otu_file.readline()).delimiter
 
-    #print("✓ OTU Table correctly loaded")
+    input_otu = pd.read_csv(args.otu_table, sep=separator)
     GlobalTimer.log("✓ OTU Table correctly loaded")
 
     return input_otu
@@ -135,24 +139,21 @@ def get_input_ani_tree():
 
     return input_tree
 
-def get_input_network():
+# Builds the input network (ANI or gene-sharing) using the OTU table that main already loaded.
+def get_input_network(count_otu_table):
     args = parse_arguments()
     fasta_file = args.fasta
-    count_otu_table = get_input_otu_table()
     output_dir = args.output_dir
     threshold = args.threshold
     network_method = args.network_method
-    
+
     GlobalTimer.log("✓ Fasta file correctly loaded")
 
     if network_method == 'ani':
         GlobalTimer.log("Using threshold: " + str(threshold))
-        input_network = nc.get_input_ani_network(fasta_file, output_dir, threshold, count_otu_table)
-        return input_network
+        return nc.get_input_ani_network(fasta_file, output_dir, threshold, count_otu_table)
     elif network_method == 'gene-sharing':
-        input_network = nc.get_input_gene_sharing_network(fasta_file, output_dir, count_otu_table)
-        return input_network
-    
+        return nc.get_input_gene_sharing_network(fasta_file, output_dir, count_otu_table)
 
 def main():
     GlobalTimer.log("Managing inputs...")
@@ -171,7 +172,7 @@ def main():
             raise ValueError("Network tree type requires --network-method (ani or gene-sharing)")
         GlobalTimer.log("Implementing the network option...")
         
-        network = get_input_network()
+        network = get_input_network(otu_table)
         matrix = oc.get_net_frac_matrix_output(network, args.distance_type, otu_table)
     
     elif args.tree_type.strip() == 'ani':
