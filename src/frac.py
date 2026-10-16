@@ -593,8 +593,9 @@ def get_bichromatic_mask(pair_edges):
 
     return original_bichromatic | both_in_both
 
-# Unweighted NetUniFrac: sum of monochromatic distances / sum of all distances (distance = 1 - weight).
+# Unweighted NetUniFrac: monochromatic edges / all edges (distance = 1 - weight).
 # If the denominator is 0, returns 1.0.
+# CHECK: Monochromatic counts works better than monochromatic sum distances.
 def get_unweighted_netunifrac(pair_edges):
     distances = 1 - pair_edges['weight']
     sum_all_distances = distances.sum()
