@@ -574,6 +574,7 @@ def get_pair_edges(network, column_A, column_B):
     # #return 1 - 0.5 * (sum_bichromatic / volume_A + sum_bichromatic / volume_B)
 
 # Monochromatic edges: both nodes only in A, or both only in B.
+# Boolean mask that gives an array of True/False values
 def get_monochromatic_mask(pair_edges):
     n1_in_A, n1_in_B = pair_edges['n1_in_A'], pair_edges['n1_in_B']
     n2_in_A, n2_in_B = pair_edges['n2_in_A'], pair_edges['n2_in_B']
